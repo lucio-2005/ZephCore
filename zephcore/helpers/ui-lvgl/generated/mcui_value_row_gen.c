@@ -6,7 +6,7 @@ void ui_on_edit(lv_event_t * e);
 
 lv_obj_t * mcui_value_row_create(lv_obj_t * parent, const char * label, lv_subject_t * value, const char * key)
 {
-	lv_obj_t * obj0 = lv_obj_create(parent);
+	lv_obj_t * obj0 = lv_button_create(parent);
 	lv_obj_set_width(obj0, lv_pct(100));
 	lv_obj_set_height(obj0, LV_SIZE_CONTENT);
 	lv_obj_set_flex_flow(obj0, LV_FLEX_FLOW_ROW);

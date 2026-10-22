@@ -5,7 +5,13 @@
  * Turns native_sim's SDL display and SDL touch back on, which
  * linux_common.overlay disables for headless SBCs, and makes them the chosen
  * display and touch device. The mouse acts as the touch screen.
+ *
+ * The keyboard stands in for a joystick, through the same gpio-keys path a
+ * joystick board uses: arrow keys, Enter for the centre press (hold it for
+ * the long press), Esc for back.
  */
+
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 
 &sdl_dc {
 	status = "okay";
@@ -19,5 +25,47 @@
 	chosen {
 		zephyr,display = &sdl_dc;
 		zephyr,touch = &input_sdl_touch;
+	};
+};
+
+/* linux_common.overlay disables the emulated GPIO controller; the keys use it. */
+&gpio0 {
+	status = "okay";
+
+	sdl_gpio {
+		compatible = "zephyr,gpio-emul-sdl";
+		/* USB HID scancodes: Up, Down, Left, Right, Return, Escape */
+		scancodes = <82 81 80 79 40 41>;
+	};
+};
+
+/ {
+	sdl_keys {
+		compatible = "gpio-keys";
+
+		key_up {
+			gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_UP>;
+		};
+		key_down {
+			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_DOWN>;
+		};
+		key_left {
+			gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_LEFT>;
+		};
+		key_right {
+			gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_RIGHT>;
+		};
+		key_enter {
+			gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_ENTER>;
+		};
+		key_esc {
+			gpios = <&gpio0 5 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_ESC>;
+		};
 	};
 };

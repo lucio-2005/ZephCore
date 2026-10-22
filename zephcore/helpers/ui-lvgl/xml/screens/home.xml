@@ -19,7 +19,7 @@
             <lv_label text="Details &gt;"/>
         </lv_obj>
 
-        <lv_tabview width="100%" flex_grow="1" tab_bar_position="bottom" active="0">
+        <lv_tabview name="home_tabs" width="100%" flex_grow="1" tab_bar_position="bottom" active="0">
             <style name="style_plain"/>
 
             <!-- ============ CHATS ============ -->
@@ -178,7 +178,7 @@
             </lv_tabview-tab>
 
             <!-- Tab bar styling (must come after the tabs so the buttons exist) -->
-            <lv_tabview-tab_bar height="30">
+            <lv_tabview-tab_bar height="30" scrollable="false">
                 <style name="style_tabbar"/>
             </lv_tabview-tab_bar>
             <lv_tabview-tab_button index="0">

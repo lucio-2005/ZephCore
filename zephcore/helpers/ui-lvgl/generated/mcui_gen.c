@@ -230,6 +230,8 @@ lv_style_t mcui_style_toast_err;
 lv_style_t mcui_style_overlay;
 lv_style_t mcui_style_textarea;
 lv_style_t mcui_style_textarea_focused;
+lv_style_t mcui_style_focus;
+lv_style_t mcui_style_focus_inner;
 lv_style_t mcui_style_track;
 lv_style_t mcui_style_indicator;
 lv_style_t mcui_style_knob;
@@ -239,6 +241,7 @@ lv_style_t mcui_style_dropdown_sel;
 lv_style_t mcui_style_keyboard;
 lv_style_t mcui_style_keyboard_keys;
 lv_style_t mcui_style_keyboard_ctrl;
+lv_style_t mcui_style_keyboard_sel;
 lv_obj_t * mcui_home;
 
 void mcui_init_gen(void)
@@ -685,6 +688,16 @@ void mcui_init_gen(void)
 	lv_style_set_pad_ver(&mcui_style_textarea, 5);
 	lv_style_init(&mcui_style_textarea_focused);
 	lv_style_set_border_color(&mcui_style_textarea_focused, lv_color_hex(0x2dd4bf));
+	lv_style_init(&mcui_style_focus);
+	lv_style_set_outline_width(&mcui_style_focus, 2);
+	lv_style_set_outline_color(&mcui_style_focus, lv_color_hex(0x2dd4bf));
+	lv_style_set_outline_opa(&mcui_style_focus, 255);
+	lv_style_set_outline_pad(&mcui_style_focus, 1);
+	lv_style_init(&mcui_style_focus_inner);
+	lv_style_set_outline_width(&mcui_style_focus_inner, 2);
+	lv_style_set_outline_color(&mcui_style_focus_inner, lv_color_hex(0x2dd4bf));
+	lv_style_set_outline_opa(&mcui_style_focus_inner, 255);
+	lv_style_set_outline_pad(&mcui_style_focus_inner, -3);
 	lv_style_init(&mcui_style_track);
 	lv_style_set_bg_color(&mcui_style_track, lv_color_hex(0x222c37));
 	lv_style_set_bg_opa(&mcui_style_track, 255);
@@ -738,5 +751,9 @@ void mcui_init_gen(void)
 	lv_style_init(&mcui_style_keyboard_ctrl);
 	lv_style_set_bg_color(&mcui_style_keyboard_ctrl, lv_color_hex(0x2d3946));
 	lv_style_set_text_color(&mcui_style_keyboard_ctrl, lv_color_hex(0xe6edf3));
+	lv_style_init(&mcui_style_keyboard_sel);
+	lv_style_set_bg_color(&mcui_style_keyboard_sel, lv_color_hex(0x2dd4bf));
+	lv_style_set_bg_opa(&mcui_style_keyboard_sel, 255);
+	lv_style_set_text_color(&mcui_style_keyboard_sel, lv_color_hex(0x06201d));
 	mcui_home = mcui_home_create();
 }

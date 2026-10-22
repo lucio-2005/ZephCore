@@ -6,7 +6,7 @@
         <prop name="key" type="string" default="name"/>
     </api>
 
-    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
+    <view extends="lv_button" width="100%" height="content" flex_flow="row" scrollable="false">
         <style name="style_row"/>
         <style name="style_row_pressed" selector="pressed"/>
         <event_cb trigger="clicked" callback="ui_on_edit" user_data="$key"/>

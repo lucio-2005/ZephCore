@@ -107,6 +107,10 @@
         <style name="style_textarea" bg_color="#surface2" bg_opa="255" border_width="1"
                border_color="#line" radius="6" text_color="#text" pad_hor="8" pad_ver="5"/>
         <style name="style_textarea_focused" border_color="#accent"/>
+        <!-- Joystick / keypad cursor; the device adds it to every item it can focus. -->
+        <style name="style_focus" outline_width="2" outline_color="#accent" outline_opa="255" outline_pad="1"/>
+        <!-- The same inside the edge, where a parent clips (tab buttons) -->
+        <style name="style_focus_inner" outline_width="2" outline_color="#accent" outline_opa="255" outline_pad="-3"/>
         <style name="style_track" bg_color="#surface2" bg_opa="255" radius="999" border_width="0"/>
         <style name="style_indicator" bg_color="#accent" bg_opa="255" radius="999"/>
         <style name="style_knob" bg_color="#text" bg_opa="255" radius="999" pad_all="2"/>
@@ -120,6 +124,7 @@
         <style name="style_keyboard_keys" bg_color="#surface2" text_color="#text" radius="4"
                border_width="0" shadow_width="0" text_font="font_small"/>
         <style name="style_keyboard_ctrl" bg_color="#line" text_color="#text"/>
+        <style name="style_keyboard_sel" bg_color="#accent" bg_opa="255" text_color="#on_accent"/>
     </styles>
 
     <subjects>

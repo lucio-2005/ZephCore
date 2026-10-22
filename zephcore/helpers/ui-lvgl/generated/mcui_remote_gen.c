@@ -22,6 +22,7 @@ lv_obj_t * mcui_remote_create(void)
 	lv_obj_set_style_pad_left(obj1, 4, 0);
 	lv_obj_add_style(obj1, &mcui_style_statusbar, 0);
 	lv_obj_t * obj2 = lv_button_create(obj1);
+	lv_obj_set_name(obj2, "nav_back");
 	lv_obj_set_width(obj2, LV_SIZE_CONTENT);
 	lv_obj_set_height(obj2, LV_SIZE_CONTENT);
 	lv_obj_add_style(obj2, &mcui_style_btn, 0);

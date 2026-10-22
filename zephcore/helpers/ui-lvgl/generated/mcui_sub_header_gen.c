@@ -14,6 +14,7 @@ lv_obj_t * mcui_sub_header_create(lv_obj_t * parent, const char * title)
 	lv_obj_set_style_pad_left(obj0, 4, 0);
 	lv_obj_add_style(obj0, &mcui_style_statusbar, 0);
 	lv_obj_t * obj1 = lv_button_create(obj0);
+	lv_obj_set_name(obj1, "nav_back");
 	lv_obj_set_width(obj1, LV_SIZE_CONTENT);
 	lv_obj_set_height(obj1, LV_SIZE_CONTENT);
 	lv_obj_add_style(obj1, &mcui_style_btn, 0);

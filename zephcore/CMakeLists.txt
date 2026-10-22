@@ -792,6 +792,7 @@ if(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
   target_sources(app PRIVATE
     helpers/ui-lvgl/ui_lvgl.c
     helpers/ui-lvgl/ui_lvgl_edit.c
+    helpers/ui-lvgl/ui_lvgl_keys.c
     helpers/ui-lvgl/ui_lvgl_settings.c
     helpers/ui-lvgl/ui_lvgl_remote.c
     helpers/ui-lvgl/ui_lvgl_map.c

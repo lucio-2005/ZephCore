@@ -66,5 +66,28 @@ void ui_lvgl_open_contact(const uint8_t *pub_key);
 
 /* Reload the nodes shown if the map is open. */
 void ui_lvgl_map_refresh(void);
+/* Joystick on the map: zoom, pick the next node, drop the pick (false if
+ * there was nothing to drop). */
+void ui_lvgl_map_zoom(bool in);
+void ui_lvgl_map_next(void);
+bool ui_lvgl_map_back(void);
+
+/* ui_lvgl_keys.c: joystick and keypad navigation */
+
+struct input_event;
+void ui_lvgl_keys_init(void);
+/* Any thread: a key event from the input bus. */
+void ui_lvgl_keys_input(const struct input_event *evt);
+/* Main thread, before lv_timer_handler(): keep the focus group current. */
+void ui_lvgl_keys_run(void);
+
+/* The user button's multi-tap shortcuts (ui_lvgl_settings.c) */
+enum ui_shortcut {
+	UI_SHORTCUT_LEDS,
+	UI_SHORTCUT_BUZZER,
+	UI_SHORTCUT_GPS,
+	UI_SHORTCUT_FLOOD_ADVERT,
+};
+void ui_lvgl_shortcut(enum ui_shortcut what);
 
 #endif /* ZEPHCORE_UI_LVGL_PRIV_H */

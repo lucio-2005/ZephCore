@@ -814,6 +814,49 @@ void ui_lvgl_settings_edit(const char *key)
 	});
 }
 
+/* ========== User button shortcuts ========== */
+
+void ui_on_advert_flood(lv_event_t *e);
+
+void ui_lvgl_shortcut(enum ui_shortcut what)
+{
+	ui_lvgl_settings_load();
+	switch (what) {
+	case UI_SHORTCUT_LEDS: {
+		bool on = !get_int(mcui_set_leds);
+
+		lv_subject_set_int(mcui_set_leds, on);
+		ui_lvgl_toast(false, on ? "LEDs on" : "LEDs off");
+		break;
+	}
+	case UI_SHORTCUT_BUZZER:
+		if (!IS_ENABLED(CONFIG_ZEPHCORE_UI_BUZZER)) {
+			ui_lvgl_toast(true, "This device has no buzzer");
+		} else {
+			uint8_t mode = zephcore_buzzer_next_mode(zephcore_buzzer_mode());
+			char msg[40];
+
+			lv_subject_set_int(mcui_set_buzzer, zephcore_buzzer_has_vibrate() ? mode : (mode != 0));
+			snprintf(msg, sizeof(msg), "Buzzer: %s", zephcore_buzzer_mode_name(mode));
+			ui_lvgl_toast(false, msg);
+		}
+		break;
+	case UI_SHORTCUT_GPS: {
+		bool on = !get_int(mcui_gps_on);
+
+		/* ui_lvgl.c applies it, or says there is no GPS. */
+		lv_subject_set_int(mcui_gps_on, on);
+		if (get_int(mcui_gps_on) == on) {
+			ui_lvgl_toast(false, on ? "GPS on" : "GPS off");
+		}
+		break;
+	}
+	case UI_SHORTCUT_FLOOD_ADVERT:
+		ui_on_advert_flood(NULL);
+		break;
+	}
+}
+
 /* ========== Init ========== */
 
 void ui_lvgl_settings_init(void)

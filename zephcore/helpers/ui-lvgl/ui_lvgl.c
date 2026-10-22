@@ -571,6 +571,8 @@ static void conv_screen_deleted(lv_event_t *e)
 	atomic_or(&dirty, D_MSGS);
 }
 
+void ui_on_send(lv_event_t *e);
+
 void ui_on_conversation_open(lv_event_t *e)
 {
 	lv_obj_t *scr = lv_event_get_current_target_obj(e);
@@ -596,6 +598,8 @@ void ui_on_conversation_open(lv_event_t *e)
 	}
 	if (kbd && ta) {
 		lv_keyboard_set_textarea(kbd, ta);
+		/* The keyboard's OK key sends, like the Send button. */
+		lv_obj_add_event_cb(kbd, ui_on_send, LV_EVENT_READY, NULL);
 	}
 	ARG_UNUSED(list);
 	conv_refresh();
@@ -892,8 +896,8 @@ static void lvgl_timer_expired(struct k_timer *timer)
 
 static void input_cb(struct input_event *evt, void *user_data)
 {
-	ARG_UNUSED(evt);
 	ARG_UNUSED(user_data);
+	ui_lvgl_keys_input(evt);
 	atomic_set(&input_seen, 1);
 	wake();
 }
@@ -965,6 +969,7 @@ void ui_lvgl_run(void)
 		apply_model(bits);
 	}
 
+	ui_lvgl_keys_run();
 	uint32_t next = lv_timer_handler();
 
 	/* Displays start blanked; show the panel once the first frame is drawn. */
@@ -1016,6 +1021,7 @@ int ui_init(void)
 	applying = false;
 	ui_lvgl_settings_init();
 	ui_lvgl_remote_init();
+	ui_lvgl_keys_init();
 
 	/* globals.xml carries preview values for the problem subjects. */
 	lv_subject_set_int(mcui_alert_count, 0);

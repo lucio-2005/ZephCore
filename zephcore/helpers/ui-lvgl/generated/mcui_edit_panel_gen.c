@@ -24,6 +24,7 @@ lv_obj_t * mcui_edit_panel_create(lv_obj_t * parent)
 	lv_obj_set_style_pad_hor(obj1, 4, 0);
 	lv_obj_add_style(obj1, &mcui_style_statusbar, 0);
 	lv_obj_t * obj2 = lv_button_create(obj1);
+	lv_obj_set_name(obj2, "panel_close");
 	lv_obj_set_width(obj2, LV_SIZE_CONTENT);
 	lv_obj_set_height(obj2, LV_SIZE_CONTENT);
 	lv_obj_add_style(obj2, &mcui_style_btn, 0);
@@ -73,5 +74,6 @@ lv_obj_t * mcui_edit_panel_create(lv_obj_t * parent)
 	lv_obj_add_style(obj10, &mcui_style_keyboard, 0);
 	lv_obj_add_style(obj10, &mcui_style_keyboard_keys, LV_PART_ITEMS);
 	lv_obj_add_style(obj10, &mcui_style_keyboard_ctrl, LV_PART_ITEMS | LV_STATE_CHECKED);
+	lv_obj_add_style(obj10, &mcui_style_keyboard_sel, LV_PART_ITEMS | LV_STATE_FOCUS_KEY);
 	return obj0;
 }

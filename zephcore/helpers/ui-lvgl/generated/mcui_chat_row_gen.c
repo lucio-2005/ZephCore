@@ -4,7 +4,7 @@
 
 lv_obj_t * mcui_chat_row_create(lv_obj_t * parent, const char * title, const char * letter, lv_color_t tint, const char * preview, const char * when, const char * path, const char * unread, bool is_read)
 {
-	lv_obj_t * obj0 = lv_obj_create(parent);
+	lv_obj_t * obj0 = lv_button_create(parent);
 	lv_obj_set_width(obj0, lv_pct(100));
 	lv_obj_set_height(obj0, LV_SIZE_CONTENT);
 	lv_obj_set_flex_flow(obj0, LV_FLEX_FLOW_ROW);

@@ -37,6 +37,7 @@ lv_obj_t * mcui_home_create(void)
 	lv_obj_t * obj4 = lv_label_create(obj2);
 	lv_label_set_text(obj4, "Details >");
 	lv_obj_t * obj5 = lv_tabview_create(obj0);
+	lv_obj_set_name(obj5, "home_tabs");
 	lv_obj_set_width(obj5, lv_pct(100));
 	lv_obj_set_flex_grow(obj5, 1);
 	lv_tabview_set_tab_bar_position(obj5, LV_DIR_BOTTOM);
@@ -219,6 +220,7 @@ lv_obj_t * mcui_home_create(void)
 	lv_obj_add_screen_create_event(obj60, LV_EVENT_CLICKED, mcui_settings_advanced_create, LV_SCREEN_LOAD_ANIM_MOVE_LEFT, 200, 0);
 	lv_obj_t * obj61 = lv_tabview_get_tab_bar(obj5);
 	lv_obj_set_height(obj61, 30);
+	lv_obj_set_scrollable(obj61, false);
 	lv_obj_add_style(obj61, &mcui_style_tabbar, 0);
 	lv_obj_t * obj62 = lv_tabview_get_tab_button(obj5, 0);
 	lv_obj_add_style(obj62, &mcui_style_tab_btn, 0);

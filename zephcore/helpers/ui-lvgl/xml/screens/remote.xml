@@ -10,7 +10,7 @@
         <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
                 style_pad_ver="4" style_pad_left="4">
             <style name="style_statusbar"/>
-            <lv_button width="content" height="content">
+            <lv_button name="nav_back" width="content" height="content">
                 <style name="style_btn"/>
                 <style name="style_btn_pressed" selector="pressed"/>
                 <screen_load_event trigger="clicked" screen="home" anim_type="move_right" duration="200"/>

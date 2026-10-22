@@ -12,7 +12,7 @@
         <prop name="is_read" type="bool" default="true"/>
     </api>
 
-    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
+    <view extends="lv_button" width="100%" height="content" flex_flow="row" scrollable="false">
         <style name="style_row"/>
         <style name="style_row_pressed" selector="pressed"/>
 

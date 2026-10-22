@@ -10,6 +10,7 @@ ui_lvgl.c           ui_task.h implementation: model -> subjects, lists, alerts, 
 ui_lvgl_settings.c  the Settings screens: NodePrefs -> subjects, changes -> ui_settings / ui_mesh_actions
 ui_lvgl_remote.c    Contacts tab, remote management (login, requests, console, remote settings), Sensors
 ui_lvgl_edit.c      the edit panel for one text or number value
+ui_lvgl_keys.c      joystick / keypad navigation (focus group, key conventions)
 ui_lvgl_map.c       the map: markers, pan and zoom, drawn in one callback
 ui_map_tiles.*      offline tiles (scripts/map_tiles.py makes them), native_sim only for now
 ui_settings.*       NodePrefs access through the CompanionMesh methods the app's commands use
@@ -39,6 +40,9 @@ ui_remote.*         contact table and remote requests (C API over CompanionMesh)
   Remote: `remote_login`, `remote_rows`, the `act_*` buttons (shown by node type and role),
   `console_list` / `console_input` / `console_kbd`, `sensor_rows`.
   Map: `map_area` (drawn by the device; children sit on top), `map_card`, `map_open`.
+  Navigation: `nav_back` on every screen's Back button, `panel_close` on every panel's
+  Cancel/Close button, `home_tabs` on the home tabview. Clickable rows extend `lv_button`
+  so the joystick can reach them; `style_focus` / `style_focus_inner` are the cursor.
 - Settings subjects (`set_*`, `sum_*`) hold dropdown indexes in the order of the XML options;
   `ui_lvgl_settings.c` maps them to NodePrefs values, so keep the two in step.
 - Subjects in `globals.xml`; `ui_lvgl.c` sets them from the mesh.

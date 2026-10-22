@@ -159,6 +159,8 @@ extern lv_style_t mcui_style_toast_err;
 extern lv_style_t mcui_style_overlay;
 extern lv_style_t mcui_style_textarea;
 extern lv_style_t mcui_style_textarea_focused;
+extern lv_style_t mcui_style_focus;
+extern lv_style_t mcui_style_focus_inner;
 extern lv_style_t mcui_style_track;
 extern lv_style_t mcui_style_indicator;
 extern lv_style_t mcui_style_knob;
@@ -168,6 +170,7 @@ extern lv_style_t mcui_style_dropdown_sel;
 extern lv_style_t mcui_style_keyboard;
 extern lv_style_t mcui_style_keyboard_keys;
 extern lv_style_t mcui_style_keyboard_ctrl;
+extern lv_style_t mcui_style_keyboard_sel;
 
 extern lv_obj_t * mcui_home;
 

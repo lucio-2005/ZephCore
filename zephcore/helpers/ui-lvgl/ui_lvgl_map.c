@@ -31,6 +31,7 @@
 #define HIT_PX		20
 #define DRAG_PX		6
 #define LABELS_MAX	20	/* name every marker up to this many in view */
+#define KEY_PAN_PX	48
 #define SEL_NONE	(-2)
 #define SEL_SELF	(-1)
 
@@ -426,6 +427,59 @@ static void hit_test(void)
 
 /* ========== Input ========== */
 
+static void center_on(int i)
+{
+	double x, y;
+
+	map_project(i < 0 ? self_lat : nodes[i].lat, i < 0 ? self_lon : nodes[i].lon, zoom, &x, &y);
+	cx = x;
+	cy = y;
+}
+
+static void pick_nearest_center(void)
+{
+	double bx = 0, by = 0, best = 1e300, x, y;
+	int pick = SEL_NONE;
+
+	for (int i = 0; i < node_count; i++) {
+		map_project(nodes[i].lat, nodes[i].lon, zoom, &x, &y);
+		double d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+
+		if (d < best) {
+			best = d;
+			pick = i;
+			bx = x;
+			by = y;
+		}
+	}
+	if (pick >= 0) {
+		cx = bx;
+		cy = by;
+	}
+	select_marker(pick);
+}
+
+void ui_lvgl_map_next(void)
+{
+	if (!map_area || node_count == 0) {
+		return;
+	}
+	int next = selected < 0 ? 0 : (selected + 1) % node_count;
+
+	center_on(next);
+	select_marker(next);
+}
+
+
+bool ui_lvgl_map_back(void)
+{
+	if (!map_area || lv_screen_active() != map_scr || selected == SEL_NONE) {
+		return false;
+	}
+	select_marker(SEL_NONE);
+	return true;
+}
+
 static void map_input(lv_event_t *e)
 {
 	lv_event_code_t code = lv_event_get_code(e);
@@ -445,8 +499,23 @@ static void map_input(lv_event_t *e)
 			drag_px += abs(v.x) + abs(v.y);
 			lv_obj_invalidate(map_area);
 		}
+	} else if (code == LV_EVENT_CLICKED && lv_indev_get_type(lv_indev_active()) == LV_INDEV_TYPE_KEYPAD) {
+		/* Centre key: open the node picked, or pick the one nearest the middle. */
+		if (selected >= 0) {
+			ui_lvgl_open_contact(nodes[selected].key);
+		} else {
+			pick_nearest_center();
+		}
 	} else if (code == LV_EVENT_CLICKED && drag_px < DRAG_PX) {
 		hit_test();
+	} else if (code == LV_EVENT_KEY) {
+		uint32_t key = lv_event_get_key(e);
+		double world = 256.0 * (1 << zoom);
+
+		cx += key == LV_KEY_RIGHT ? KEY_PAN_PX : key == LV_KEY_LEFT ? -KEY_PAN_PX : 0;
+		cy += key == LV_KEY_DOWN ? KEY_PAN_PX : key == LV_KEY_UP ? -KEY_PAN_PX : 0;
+		cy = cy < 0 ? 0 : (cy > world ? world : cy);
+		lv_obj_invalidate(map_area);
 	}
 }
 
@@ -469,6 +538,7 @@ void ui_on_map_open(lv_event_t *e)
 	lv_obj_add_event_cb(map_area, map_input, LV_EVENT_PRESSED, NULL);
 	lv_obj_add_event_cb(map_area, map_input, LV_EVENT_PRESSING, NULL);
 	lv_obj_add_event_cb(map_area, map_input, LV_EVENT_CLICKED, NULL);
+	lv_obj_add_event_cb(map_area, map_input, LV_EVENT_KEY, NULL);
 	lv_subject_set_string(mcui_map_attrib, map_tiles_available() ? map_tiles_attribution() : "");
 	load_nodes();
 	update_status();
@@ -476,10 +546,8 @@ void ui_on_map_open(lv_event_t *e)
 	select_marker(SEL_NONE);
 }
 
-void ui_on_map_zoom(lv_event_t *e)
+static void zoom_cmd(const char *how)
 {
-	const char *how = lv_event_get_user_data(e);
-
 	if (!map_area || !how) {
 		return;
 	}
@@ -495,6 +563,16 @@ void ui_on_map_zoom(lv_event_t *e)
 		fit();
 	}
 	lv_obj_invalidate(map_area);
+}
+
+void ui_on_map_zoom(lv_event_t *e)
+{
+	zoom_cmd(lv_event_get_user_data(e));
+}
+
+void ui_lvgl_map_zoom(bool in)
+{
+	zoom_cmd(in ? "in" : "out");
 }
 
 void ui_on_map_open_node(lv_event_t *e)

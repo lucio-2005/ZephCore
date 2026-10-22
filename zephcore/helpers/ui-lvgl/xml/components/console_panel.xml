@@ -7,7 +7,7 @@
         <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
                 style_pad_ver="4" style_pad_hor="4">
             <style name="style_statusbar"/>
-            <lv_button width="content" height="content">
+            <lv_button name="panel_close" width="content" height="content">
                 <style name="style_btn"/>
                 <style name="style_btn_pressed" selector="pressed"/>
                 <event_cb trigger="clicked" callback="ui_on_console_close"/>
@@ -40,6 +40,7 @@
             <style name="style_keyboard"/>
             <style name="style_keyboard_keys" selector="items"/>
             <style name="style_keyboard_ctrl" selector="items|checked"/>
+            <style name="style_keyboard_sel" selector="items|focus_key"/>
         </lv_keyboard>
     </view>
 </component>
