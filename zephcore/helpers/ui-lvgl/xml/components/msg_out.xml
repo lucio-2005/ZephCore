@@ -1,0 +1,20 @@
+<!-- Outgoing message bubble, right aligned. "meta" carries time and delivery state. -->
+<component>
+    <api>
+        <prop name="text" type="string" default=""/>
+        <prop name="meta" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="column" scrollable="false" clickable="false"
+          style_flex_cross_place="end">
+        <style name="style_plain"/>
+        <lv_obj width="80%" height="content" flex_flow="column" scrollable="false" clickable="false"
+                style_flex_cross_place="end">
+            <style name="style_bubble_out"/>
+            <lv_label text="$text" width="100%"/>
+            <lv_label text="$meta">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+    </view>
+</component>

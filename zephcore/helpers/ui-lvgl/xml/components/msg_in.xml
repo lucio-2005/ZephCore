@@ -1,0 +1,20 @@
+<!-- Incoming message bubble, left aligned. -->
+<component>
+    <api>
+        <prop name="sender" type="string" default=""/>
+        <prop name="text" type="string" default=""/>
+        <prop name="meta" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="column" scrollable="false" clickable="false">
+        <style name="style_plain"/>
+        <lv_obj width="80%" height="content" flex_flow="column" scrollable="false" clickable="false">
+            <style name="style_bubble_in"/>
+            <lv_label text="$sender" style_text_font="font_small" style_text_color="#accent"/>
+            <lv_label text="$text" width="100%"/>
+            <lv_label text="$meta">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+    </view>
+</component>

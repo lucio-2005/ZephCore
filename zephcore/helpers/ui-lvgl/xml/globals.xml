@@ -1,0 +1,142 @@
+<globals>
+    <api>
+    </api>
+
+    <consts>
+        <!-- Palette (dark theme) -->
+        <color name="bg"         value="0x0e1318"/>
+        <color name="surface"    value="0x182028"/>
+        <color name="surface2"   value="0x222c37"/>
+        <color name="line"       value="0x2d3946"/>
+        <color name="text"       value="0xe6edf3"/>
+        <color name="muted"      value="0x8a97a6"/>
+        <color name="accent"     value="0x2dd4bf"/>
+        <color name="on_accent"  value="0x06201d"/>
+        <color name="bubble_out" value="0x0f4f4a"/>
+
+        <!-- Node kind colors -->
+        <color name="kind_chat"    value="0x2dd4bf"/>
+        <color name="kind_rpt"     value="0xf5a524"/>
+        <color name="kind_room"    value="0xa78bfa"/>
+        <color name="kind_channel" value="0x60a5fa"/>
+
+        <!-- Spacing -->
+        <px name="gap_s"  value="4"/>
+        <px name="gap_m"  value="6"/>
+        <px name="gap_l"  value="10"/>
+        <px name="radius" value="8"/>
+    </consts>
+
+    <styles>
+        <!-- Containers -->
+        <style name="style_screen" bg_color="#bg" bg_opa="255" text_color="#text" text_font="font_body"
+               pad_all="0" pad_row="0" border_width="0"/>
+        <style name="style_plain" text_color="#text" bg_opa="0" border_width="0" pad_all="0" radius="0" shadow_width="0"
+               pad_row="0" pad_column="0"/>
+        <style name="style_page" text_color="#text" bg_opa="0" border_width="0" pad_all="#gap_m" pad_row="#gap_m"
+               radius="0"/>
+        <style name="style_card" text_color="#text" bg_color="#surface" bg_opa="255" radius="#radius" border_width="0"
+               pad_all="#gap_l" pad_row="#gap_m" pad_column="#gap_m" shadow_width="0"/>
+
+        <!-- Status bar -->
+        <style name="style_statusbar" text_color="#text" bg_color="#surface" bg_opa="255" radius="0" border_width="1"
+               border_side="bottom" border_color="#line" pad_hor="8" pad_ver="0" pad_column="8"
+               flex_cross_place="center" flex_track_place="center"/>
+
+        <!-- List rows -->
+        <style name="style_row" text_color="#text" bg_color="#surface" bg_opa="255" radius="#radius" border_width="0"
+               pad_hor="8" pad_ver="6" pad_column="8" shadow_width="0"
+               flex_cross_place="center" flex_track_place="center"/>
+        <style name="style_row_pressed" bg_color="#surface2"/>
+
+        <!-- Text -->
+        <style name="style_text_muted" text_color="#muted" text_font="font_small"/>
+        <style name="style_title" text_font="font_title" text_color="#text"/>
+        <style name="style_section" text_font="font_small" text_color="#accent" pad_top="6"/>
+
+        <!-- Small pieces -->
+        <style name="style_avatar" radius="999" bg_opa="255" border_width="0" pad_all="0"/>
+        <style name="style_badge" bg_color="#accent" bg_opa="255" radius="999" pad_hor="6" pad_ver="1"
+               text_color="#on_accent" text_font="font_small"/>
+        <style name="style_tag" bg_opa="40" radius="4" pad_hor="4" pad_ver="0" text_font="font_small"/>
+
+        <!-- Buttons -->
+        <style name="style_btn" bg_color="#surface2" bg_opa="255" radius="6" border_width="0"
+               shadow_width="0" text_color="#text" pad_hor="10" pad_ver="6"/>
+        <style name="style_btn_accent" bg_color="#accent" text_color="#on_accent"/>
+        <style name="style_btn_pressed" bg_color="#line"/>
+        <style name="style_btn_accent_pressed" bg_color="0x1fa595"/>
+
+        <!-- Chat bubbles -->
+        <style name="style_bubble_in" text_color="#text" bg_color="#surface2" bg_opa="255" radius="10" border_width="0"
+               pad_hor="8" pad_ver="5" pad_row="2"/>
+        <style name="style_bubble_out" text_color="#text" bg_color="#bubble_out" bg_opa="255" radius="10" border_width="0"
+               pad_hor="8" pad_ver="5" pad_row="2"/>
+
+        <!-- Tab bar -->
+        <style name="style_tabbar" bg_color="#surface" bg_opa="255" border_width="1" border_side="top"
+               border_color="#line" pad_all="0" radius="0"/>
+        <style name="style_tab_btn" bg_opa="0" text_color="#muted" text_font="font_small"
+               border_width="0" radius="0" shadow_width="0" outline_width="0"/>
+        <style name="style_tab_btn_checked" text_color="#accent" border_width="2" border_side="top"
+               border_color="#accent" bg_opa="0"/>
+
+        <!-- Inputs -->
+        <style name="style_textarea" bg_color="#surface2" bg_opa="255" border_width="1"
+               border_color="#line" radius="6" text_color="#text" pad_hor="8" pad_ver="5"/>
+        <style name="style_textarea_focused" border_color="#accent"/>
+        <style name="style_track" bg_color="#surface2" bg_opa="255" radius="999" border_width="0"/>
+        <style name="style_indicator" bg_color="#accent" bg_opa="255" radius="999"/>
+        <style name="style_knob" bg_color="#text" bg_opa="255" radius="999" pad_all="2"/>
+        <style name="style_dropdown" bg_color="#surface2" bg_opa="255" border_width="0" radius="6"
+               text_color="#text" text_font="font_small" pad_hor="8" pad_ver="4"/>
+        <style name="style_dropdown_list" bg_color="#surface2" bg_opa="255" border_width="1"
+               border_color="#line" radius="6" text_color="#text" text_font="font_small"/>
+        <style name="style_dropdown_sel" bg_color="#accent" bg_opa="255" text_color="#on_accent"/>
+        <style name="style_keyboard" bg_color="#surface" bg_opa="255" border_width="0" pad_all="3"
+               pad_row="3" pad_column="3" radius="0"/>
+        <style name="style_keyboard_keys" bg_color="#surface2" text_color="#text" radius="4"
+               border_width="0" shadow_width="0" text_font="font_small"/>
+        <style name="style_keyboard_ctrl" bg_color="#line" text_color="#text"/>
+    </styles>
+
+    <subjects>
+        <!-- Node / device state (set from the MeshCore glue code on the device) -->
+        <string name="node_name"    value="IT-Roma-Base"/>
+        <string name="clock"        value="14:32"/>
+        <int    name="battery_pct"  value="76" min_value="0" max_value="100"/>
+        <int    name="last_rssi"    value="-92"/>
+        <int    name="unread_total" value="3"/>
+        <int    name="tx_power"     value="22" min_value="1" max_value="30"/>
+        <string name="last_advert"  value="never"/>
+        <string name="node_id"      value="Companion | a3f9c41e...7b02"/>
+        <string name="radio_freq"   value="869.525 MHz"/>
+        <string name="radio_bw"     value="250 kHz"/>
+        <string name="radio_sf"     value="SF11"/>
+        <string name="radio_cr"     value="4/5"/>
+        <string name="contacts_summary" value="6 nodes | 3 companions | 2 repeaters | 1 room"/>
+
+        <!-- Conversation screen -->
+        <string name="chat_title"    value="Alice"/>
+        <string name="chat_path"     value="Direct | 1 hop"/>
+        <int    name="show_keyboard" value="0" min_value="0" max_value="1"/>
+
+        <!-- Settings -->
+        <int name="brightness"     value="70" min_value="5" max_value="100"/>
+        <int name="screen_timeout" value="1"/>
+        <int name="gps_on"         value="1"/>
+        <int name="ble_on"         value="1"/>
+        <int name="auto_advert"    value="1"/>
+        <int name="buzzer_on"      value="0"/>
+    </subjects>
+
+    <images>
+    </images>
+
+    <fonts>
+        <bin name="font_small" src_path="fonts/Montserrat-Medium.ttf" size="12" bpp="4" as_file="false"/>
+        <bin name="font_body"  src_path="fonts/Montserrat-Medium.ttf" size="14" bpp="4" as_file="false"/>
+        <bin name="font_title" src_path="fonts/Montserrat-Bold.ttf"   size="16" bpp="4" as_file="false"/>
+        <bin name="font_big"   src_path="fonts/Montserrat-Bold.ttf"   size="22" bpp="4" as_file="false"/>
+    </fonts>
+</globals>

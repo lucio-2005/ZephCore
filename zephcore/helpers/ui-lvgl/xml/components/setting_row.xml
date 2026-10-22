@@ -1,0 +1,18 @@
+<!-- A settings line: label and hint on the left; the control is added as a child and ends up on the right. -->
+<component>
+    <api>
+        <prop name="label" type="string" default=""/>
+        <prop name="hint" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false" clickable="false">
+        <style name="style_row"/>
+        <lv_obj flex_grow="1" height="content" flex_flow="column" scrollable="false" clickable="false">
+            <style name="style_plain"/>
+            <lv_label text="$label"/>
+            <lv_label text="$hint" width="100%" height="15" long_mode="dots">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+    </view>
+</component>

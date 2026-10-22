@@ -1,0 +1,192 @@
+<!-- Main screen: status bar on top, four tabs with the tab bar at the bottom.
+     Permanent, so it keeps its state (active tab, scroll position) when a conversation is opened. -->
+<screen permanent="true">
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+
+        <status_bar/>
+
+        <lv_tabview width="100%" flex_grow="1" tab_bar_position="bottom" active="0">
+            <style name="style_plain"/>
+
+            <!-- ============ CHATS ============ -->
+            <lv_tabview-tab text="Chats" name="chat_list" flex_flow="column">
+                <style name="style_page"/>
+                <chat_row title="Public" letter="P" tint="#kind_channel" path="Channel | flood"
+                          preview="Marco: anyone on 869.525 tonight?" when="14:28" unread="2" is_read="false"/>
+                <chat_row title="Alice" letter="A" tint="#kind_chat" path="Direct | 1 hop"
+                          preview="See you at the field day!" when="14:07" unread="1" is_read="false"/>
+                <chat_row title="Roma Mesh" letter="R" tint="#kind_channel" path="Channel | flood"
+                          preview="Luca: Monte Cavo repeater is back up" when="13:55"/>
+                <chat_row title="Bob" letter="B" tint="#kind_chat" path="Direct | 3 hops"
+                          preview="You: ok, sending a flood advert now" when="Yesterday"/>
+                <chat_row title="Giulia" letter="G" tint="#kind_chat" path="Direct | 4 hops"
+                          preview="Thanks for the path test" when="Mon"/>
+            </lv_tabview-tab>
+
+            <!-- ============ CONTACTS ============ -->
+            <lv_tabview-tab text="Contacts" flex_flow="column">
+                <style name="style_page"/>
+                <lv_label bind_text="contacts_summary" width="100%">
+                    <style name="style_text_muted"/>
+                </lv_label>
+                <lv_obj name="contact_list" width="100%" height="content" flex_flow="column" scrollable="false"
+                        style_pad_row="#gap_m">
+                    <style name="style_plain"/>
+                    <contact_row name="Monte Cavo" letter="M" kind="RPT" tint="#kind_rpt"
+                                 heard="heard 1m ago" hops="Direct" snr="SNR 11.0"/>
+                    <contact_row name="Alice" letter="A" kind="CHAT" tint="#kind_chat"
+                                 heard="heard 2m ago" hops="1 hop" snr="SNR 9.2"/>
+                    <contact_row name="Bob" letter="B" kind="CHAT" tint="#kind_chat"
+                                 heard="heard 15m ago" hops="3 hops" snr="SNR 4.5"/>
+                    <contact_row name="Roma-Nord" letter="R" kind="RPT" tint="#kind_rpt"
+                                 heard="heard 22m ago" hops="2 hops" snr="SNR -3.5"/>
+                    <contact_row name="IT Mesh Room" letter="I" kind="ROOM" tint="#kind_room"
+                                 heard="heard 1h ago" hops="3 hops" snr="SNR 1.0"/>
+                    <contact_row name="Giulia" letter="G" kind="CHAT" tint="#kind_chat"
+                                 heard="heard 3h ago" hops="4 hops" snr="SNR -6.0"/>
+                </lv_obj>
+            </lv_tabview-tab>
+
+            <!-- ============ NODE ============ -->
+            <lv_tabview-tab text="Node" flex_flow="column">
+                <style name="style_page"/>
+
+                <lv_obj width="100%" height="content" flex_flow="column" scrollable="false">
+                    <style name="style_card"/>
+                    <lv_label bind_text="node_name" style_text_font="font_big"/>
+                    <lv_label bind_text="node_id">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                    <lv_obj width="100%" height="content" flex_flow="row" scrollable="false"
+                            style_flex_cross_place="center" style_pad_column="8">
+                        <style name="style_plain"/>
+                        <lv_label text="Battery">
+                            <style name="style_text_muted"/>
+                        </lv_label>
+                        <lv_bar flex_grow="1" height="8" bind_value="battery_pct">
+                            <style name="style_track"/>
+                            <style name="style_indicator" selector="indicator"/>
+                        </lv_bar>
+                        <lv_label bind_text="battery_pct" bind_text-fmt="%d%%"/>
+                    </lv_obj>
+                </lv_obj>
+
+                <section_label text="RADIO"/>
+                <lv_obj width="100%" height="content" flex_flow="column" scrollable="false">
+                    <style name="style_card"/>
+                    <kv_row key="Frequency" value="radio_freq"/>
+                    <kv_row key="Bandwidth" value="radio_bw"/>
+                    <kv_row key="Spreading factor" value="radio_sf"/>
+                    <kv_row key="Coding rate" value="radio_cr"/>
+                    <lv_obj width="100%" height="content" flex_flow="row" scrollable="false"
+                            style_flex_cross_place="center">
+                        <style name="style_plain"/>
+                        <lv_label text="TX power" flex_grow="1">
+                            <style name="style_text_muted"/>
+                        </lv_label>
+                        <lv_label bind_text="tx_power" bind_text-fmt="%d dBm"/>
+                    </lv_obj>
+                    <lv_label bind_text="last_rssi" bind_text-fmt="Last packet RSSI: %d dBm">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                </lv_obj>
+
+                <section_label text="ADVERTISE"/>
+                <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" style_pad_column="6">
+                    <style name="style_plain"/>
+                    <lv_button flex_grow="1" height="content">
+                        <style name="style_btn"/>
+                        <style name="style_btn_pressed" selector="pressed"/>
+                        <subject_set_string_event trigger="clicked" subject="last_advert" value="zero-hop at 14:32"/>
+                        <event_cb trigger="clicked" callback="ui_on_advert_zerohop"/>
+                        <lv_label text="Zero-hop" align="center"/>
+                    </lv_button>
+                    <lv_button flex_grow="1" height="content">
+                        <style name="style_btn"/>
+                        <style name="style_btn_accent"/>
+                        <style name="style_btn_accent_pressed" selector="pressed"/>
+                        <subject_set_string_event trigger="clicked" subject="last_advert" value="flood at 14:32"/>
+                        <event_cb trigger="clicked" callback="ui_on_advert_flood"/>
+                        <lv_label text="Flood" align="center"/>
+                    </lv_button>
+                </lv_obj>
+                <lv_label bind_text="last_advert" bind_text-fmt="Last advert: %s">
+                    <style name="style_text_muted"/>
+                </lv_label>
+            </lv_tabview-tab>
+
+            <!-- ============ SETTINGS ============ -->
+            <lv_tabview-tab text="Settings" flex_flow="column">
+                <style name="style_page"/>
+
+                <section_label text="DISPLAY"/>
+                <lv_obj width="100%" height="content" flex_flow="column" scrollable="false">
+                    <style name="style_card"/>
+                    <lv_obj width="100%" height="content" flex_flow="row" scrollable="false"
+                            style_flex_cross_place="center">
+                        <style name="style_plain"/>
+                        <lv_label text="Brightness" flex_grow="1"/>
+                        <lv_label bind_text="brightness" bind_text-fmt="%d%%">
+                            <style name="style_text_muted"/>
+                        </lv_label>
+                    </lv_obj>
+                    <lv_slider width="100%" height="6" min_value="5" max_value="100" bind_value="brightness"
+                               style_margin_ver="6">
+                        <style name="style_track"/>
+                        <style name="style_indicator" selector="indicator"/>
+                        <style name="style_knob" selector="knob"/>
+                    </lv_slider>
+                </lv_obj>
+                <setting_row label="Screen timeout" hint="Turn the display off when idle">
+                    <lv_dropdown width="84" options="15 s&#10;30 s&#10;1 min&#10;5 min&#10;Never"
+                                 bind_value="screen_timeout">
+                        <style name="style_dropdown"/>
+                        <lv_dropdown-list>
+                            <style name="style_dropdown_list"/>
+                            <style name="style_dropdown_sel" selector="selected|checked"/>
+                            <style name="style_dropdown_sel" selector="selected|pressed"/>
+                        </lv_dropdown-list>
+                    </lv_dropdown>
+                </setting_row>
+
+                <section_label text="RADIO AND LOCATION"/>
+                <setting_row label="GPS" hint="Share position in adverts">
+                    <mc_switch subject="gps_on"/>
+                </setting_row>
+                <setting_row label="Bluetooth" hint="Companion app connection">
+                    <mc_switch subject="ble_on"/>
+                </setting_row>
+                <setting_row label="Auto advert" hint="Send a flood advert every 12 h">
+                    <mc_switch subject="auto_advert"/>
+                </setting_row>
+
+                <section_label text="NOTIFICATIONS"/>
+                <setting_row label="Buzzer" hint="Beep on new messages">
+                    <mc_switch subject="buzzer_on"/>
+                </setting_row>
+            </lv_tabview-tab>
+
+            <!-- Tab bar styling (must come after the tabs so the buttons exist) -->
+            <lv_tabview-tab_bar height="30">
+                <style name="style_tabbar"/>
+            </lv_tabview-tab_bar>
+            <lv_tabview-tab_button index="0">
+                <style name="style_tab_btn"/>
+                <style name="style_tab_btn_checked" selector="checked"/>
+            </lv_tabview-tab_button>
+            <lv_tabview-tab_button index="1">
+                <style name="style_tab_btn"/>
+                <style name="style_tab_btn_checked" selector="checked"/>
+            </lv_tabview-tab_button>
+            <lv_tabview-tab_button index="2">
+                <style name="style_tab_btn"/>
+                <style name="style_tab_btn_checked" selector="checked"/>
+            </lv_tabview-tab_button>
+            <lv_tabview-tab_button index="3">
+                <style name="style_tab_btn"/>
+                <style name="style_tab_btn_checked" selector="checked"/>
+            </lv_tabview-tab_button>
+        </lv_tabview>
+    </view>
+</screen>

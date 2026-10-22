@@ -1,0 +1,12 @@
+<!-- Themed switch bound to an int subject (0 = off, 1 = on). -->
+<component>
+    <api>
+        <prop name="subject" type="subject" default="gps_on"/>
+    </api>
+
+    <view extends="lv_switch" width="40" height="22" bind_checked="$subject">
+        <style name="style_track"/>
+        <style name="style_indicator" selector="indicator|checked"/>
+        <style name="style_knob" selector="knob"/>
+    </view>
+</component>

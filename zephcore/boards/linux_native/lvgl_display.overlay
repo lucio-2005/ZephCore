@@ -1,0 +1,23 @@
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * Desktop preview of the LVGL touch UI (auto-paired with lvgl_display.conf).
+ * Turns native_sim's SDL display and SDL touch back on, which
+ * linux_common.overlay disables for headless SBCs, and makes them the chosen
+ * display and touch device. The mouse acts as the touch screen.
+ */
+
+&sdl_dc {
+	status = "okay";
+};
+
+&input_sdl_touch {
+	status = "okay";
+};
+
+/ {
+	chosen {
+		zephyr,display = &sdl_dc;
+		zephyr,touch = &input_sdl_touch;
+	};
+};

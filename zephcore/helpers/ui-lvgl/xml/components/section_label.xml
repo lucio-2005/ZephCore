@@ -1,0 +1,10 @@
+<!-- Small accent-colored heading between groups of rows. -->
+<component>
+    <api>
+        <prop name="text" type="string" default=""/>
+    </api>
+
+    <view extends="lv_label" text="$text" width="100%">
+        <style name="style_section"/>
+    </view>
+</component>

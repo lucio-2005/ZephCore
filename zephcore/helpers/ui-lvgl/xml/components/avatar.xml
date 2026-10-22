@@ -1,0 +1,12 @@
+<!-- Round avatar with a single letter (or "#" for channels). -->
+<component>
+    <api>
+        <prop name="letter" type="string" default="?"/>
+        <prop name="tint" type="color" default="0x2dd4bf"/>
+    </api>
+
+    <view extends="lv_obj" width="30" height="30" clickable="false" scrollable="false" style_bg_color="$tint">
+        <style name="style_avatar"/>
+        <lv_label text="$letter" align="center" style_text_font="font_title" style_text_color="#bg"/>
+    </view>
+</component>

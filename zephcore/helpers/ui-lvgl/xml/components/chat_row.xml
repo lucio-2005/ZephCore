@@ -1,0 +1,45 @@
+<!-- One conversation in the Chats list (a direct chat or a channel).
+     Clicking it sets the conversation subjects and opens the conversation screen. -->
+<component>
+    <api>
+        <prop name="title" type="string" default="Contact"/>
+        <prop name="letter" type="string" default="?"/>
+        <prop name="tint" type="color" default="0x2dd4bf"/>
+        <prop name="preview" type="string" default=""/>
+        <prop name="when" type="string" default=""/>
+        <prop name="path" type="string" default="Direct"/>
+        <prop name="unread" type="string" default="0"/>
+        <prop name="is_read" type="bool" default="true"/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
+        <style name="style_row"/>
+        <style name="style_row_pressed" selector="pressed"/>
+
+        <subject_set_string_event trigger="clicked" subject="chat_title" value="$title"/>
+        <subject_set_string_event trigger="clicked" subject="chat_path" value="$path"/>
+        <screen_create_event trigger="clicked" screen="conversation" anim_type="move_left" duration="200"/>
+
+        <avatar letter="$letter" tint="$tint"/>
+
+        <lv_obj flex_grow="1" height="content" flex_flow="column" clickable="false" scrollable="false">
+            <style name="style_plain"/>
+            <lv_obj width="100%" height="content" flex_flow="row" clickable="false" scrollable="false">
+                <style name="style_plain"/>
+                <lv_label text="$title" flex_grow="1" height="20" long_mode="dots">
+                    <style name="style_title"/>
+                </lv_label>
+                <lv_label text="$when">
+                    <style name="style_text_muted"/>
+                </lv_label>
+            </lv_obj>
+            <lv_label text="$preview" width="100%" height="15" long_mode="dots">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+
+        <lv_label text="$unread" hidden="$is_read">
+            <style name="style_badge"/>
+        </lv_label>
+    </view>
+</component>

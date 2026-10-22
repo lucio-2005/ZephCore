@@ -780,6 +780,21 @@ if(CONFIG_ZEPHCORE_UI_DISPLAY AND CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
   )
 endif()
 
+if(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+  file(GLOB _ui_lvgl_generated
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/ui-lvgl/generated/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/ui-lvgl/generated/fonts/*.c
+  )
+  target_sources(app PRIVATE
+    helpers/ui-lvgl/ui_lvgl.c
+    ${_ui_lvgl_generated}
+  )
+  target_include_directories(app PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/ui-lvgl
+    ${CMAKE_CURRENT_SOURCE_DIR}/helpers/ui-lvgl/generated
+  )
+endif()
+
 if(CONFIG_ZEPHCORE_EASTER_EGG_DOOM)
   target_sources(app PRIVATE
     helpers/ui/doom_game.c

@@ -59,6 +59,10 @@ LOG_MODULE_REGISTER(zephcore_main, CONFIG_ZEPHCORE_MAIN_LOG_LEVEL);
 #include <joystick_ui_hooks.h>
 #endif
 
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+#include <ui_lvgl.h>
+#endif
+
 /* Radio + mesh includes (shared header selects LR1110 or SX126x) */
 #include <src/RadioIncludes.h>
 #ifdef ZEPHCORE_LORA
@@ -99,6 +103,7 @@ extern "C" void bt_ctlr_assert_handle(char *file, uint32_t line)
 #define MESH_EVENT_CONTACT_ITER  BIT(MESH_EVENT_ROLE_BASE + 3)  /* Continue contact-dump iteration on main thread */
 #define MESH_EVENT_LINK          BIT(MESH_EVENT_ROLE_BASE + 4)  /* A transport connected or disconnected */
 #define MESH_EVENT_PERSIST       BIT(MESH_EVENT_ROLE_BASE + 5)  /* Flush deferred writes: a reboot/power-off waits on it */
+#define MESH_EVENT_LVGL          BIT(MESH_EVENT_ROLE_BASE + 6)  /* Run LVGL (input, its timers, or new UI state) */
 
 #ifdef ZEPHCORE_LORA
 static void save_prefs_to_flash(void);
@@ -111,6 +116,8 @@ static void power_policy_tick(void);
 	MESH_EVENT_CONTACT_ITER | MESH_EVENT_LINK | MESH_EVENT_PERSIST)
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
 #define MESH_EVENT_ALL           (MESH_EVENT_BASE | MESH_EVENT_JOYSTICK_LOOP)
+#elif IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+#define MESH_EVENT_ALL           (MESH_EVENT_BASE | MESH_EVENT_LVGL)
 #else
 #define MESH_EVENT_ALL           MESH_EVENT_BASE
 #endif
@@ -137,6 +144,13 @@ static void joystick_signal_refresh(void)
 static void joystick_signal_tx(void)
 {
 	k_event_post(&mesh_events, MESH_EVENT_TX_DRAIN);
+}
+#endif
+
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+static void lvgl_signal(void)
+{
+	k_event_post(&mesh_events, MESH_EVENT_LVGL);
 }
 #endif
 
@@ -509,6 +523,11 @@ static void mesh_event_loop(void)
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
 		if (events & MESH_EVENT_JOYSTICK_LOOP) {
 			joystick_ui_task.loop();
+		}
+#endif
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+		if (events & MESH_EVENT_LVGL) {
+			ui_lvgl_run();
 		}
 #endif
 	}
@@ -1183,6 +1202,9 @@ int main(void)
 
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
 	joystick_ui_task.begin(&companion_mesh, &rtc_clock, &companion_mesh.prefs);
+#endif
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
+	ui_lvgl_register(lvgl_signal);
 #endif
 #endif
 

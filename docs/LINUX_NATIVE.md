@@ -201,6 +201,22 @@ socat /dev/pts/3 TCP-LISTEN:6000,reuseaddr,fork &
 nc <sbc-ip> 6000
 ```
 
+### 5. Desktop preview of the LVGL touch UI
+
+`lvgl_display.conf` turns native_sim's SDL window back on and runs the LVGL touch UI
+(`helpers/ui-lvgl/`) in it, with the mouse as the touch screen. It needs the SDL2
+development package on the build host (`sudo apt install libsdl2-dev`).
+
+```bash
+rm -rf build && west build -b native_sim/native/64 zephcore -- \
+  -DEXTRA_CONF_FILE="boards/linux_native/femtofox.conf;boards/linux_native/lvgl_display.conf"
+./build/zephyr/zephcore_native_linux.exe
+```
+
+Without a radio the lists stay empty. Add `CONFIG_ZEPHCORE_UI_LVGL_DEMO_DATA=y` (for example
+in a small extra `.conf` at the end of `EXTRA_CONF_FILE`) to fill them with sample messages
+and heard nodes at boot.
+
 ---
 
 ## Hardware Wiring

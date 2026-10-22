@@ -1,0 +1,71 @@
+<!-- A single conversation (direct chat or channel).
+     The header is bound to chat_title / chat_path, which the chat rows set before opening this screen.
+     The messages here are sample data; on the device the glue code creates msg_in / msg_out rows. -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_conversation_open"/>
+
+        <!-- Header -->
+        <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                style_pad_ver="4" style_pad_left="4">
+            <style name="style_statusbar"/>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <screen_load_event trigger="clicked" screen="home" anim_type="move_right" duration="200"/>
+                <lv_label text="&lt; Back" style_text_font="font_small"/>
+            </lv_button>
+            <lv_obj flex_grow="1" height="content" flex_flow="column" scrollable="false" clickable="false">
+                <style name="style_plain"/>
+                <lv_label bind_text="chat_title" width="100%" height="20" long_mode="dots">
+                    <style name="style_title"/>
+                </lv_label>
+                <lv_label bind_text="chat_path" width="100%" height="15" long_mode="dots">
+                    <style name="style_text_muted"/>
+                </lv_label>
+            </lv_obj>
+        </lv_obj>
+
+        <!-- Message list -->
+        <lv_obj name="msg_list" width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <msg_in sender="Alice" text="Hi! Are you near the Monte Cavo repeater?" meta="14:02 | SNR 8.5"/>
+            <msg_out text="Yes, about 5 km away. Signal looks good." meta="14:03 | delivered"/>
+            <msg_in sender="Alice" text="Great, I'll send a flood advert so the new nodes can see us." meta="14:04 | SNR 9.0"/>
+            <msg_out text="Heard 3 repeats on my last one." meta="14:05 | heard 3x"/>
+            <msg_in sender="Alice" text="See you at the field day!" meta="14:07 | SNR 9.2"/>
+        </lv_obj>
+
+        <!-- Composer -->
+        <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                style_pad_all="4" style_pad_column="4" style_border_side="top">
+            <style name="style_statusbar"/>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <subject_toggle_event trigger="clicked" subject="show_keyboard"/>
+                <lv_label text="Kbd" style_text_font="font_small"/>
+            </lv_button>
+            <lv_textarea name="msg_input" flex_grow="1" one_line="true" placeholder_text="Message...">
+                <style name="style_textarea"/>
+                <style name="style_textarea_focused" selector="focused"/>
+            </lv_textarea>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_accent"/>
+                <style name="style_btn_accent_pressed" selector="pressed"/>
+                <event_cb trigger="clicked" callback="ui_on_send"/>
+                <lv_label text="Send" style_text_font="font_small"/>
+            </lv_button>
+        </lv_obj>
+
+        <!-- On-screen keyboard for touch-only devices, toggled by "Kbd" -->
+        <lv_keyboard name="msg_kbd" width="100%" height="45%" mode="text_lower">
+            <style name="style_keyboard"/>
+            <style name="style_keyboard_keys" selector="items"/>
+            <style name="style_keyboard_ctrl" selector="items|checked"/>
+            <bind_flag_if_eq subject="show_keyboard" flag="hidden" ref_value="0"/>
+        </lv_keyboard>
+    </view>
+</screen>

@@ -1,0 +1,16 @@
+<!-- Key / value line used on the Node page. The value is bound to a string subject. -->
+<component>
+    <api>
+        <prop name="key" type="string" default=""/>
+        <prop name="value" type="subject" default="radio_freq"/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+          style_flex_cross_place="center">
+        <style name="style_plain"/>
+        <lv_label text="$key" flex_grow="1">
+            <style name="style_text_muted"/>
+        </lv_label>
+        <lv_label bind_text="$value"/>
+    </view>
+</component>
