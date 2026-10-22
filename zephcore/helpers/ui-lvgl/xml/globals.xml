@@ -20,6 +20,11 @@
         <color name="kind_room"    value="0xa78bfa"/>
         <color name="kind_channel" value="0x60a5fa"/>
 
+        <!-- Problems -->
+        <color name="danger"     value="0xef4444"/>
+        <color name="danger_bg"  value="0x3b1416"/>
+        <color name="warn"       value="0xf59e0b"/>
+
         <!-- Spacing -->
         <px name="gap_s"  value="4"/>
         <px name="gap_m"  value="6"/>
@@ -81,6 +86,18 @@
         <style name="style_tab_btn_checked" text_color="#accent" border_width="2" border_side="top"
                border_color="#accent" bg_opa="0"/>
 
+        <!-- Problems: banner, alert badge, toasts -->
+        <style name="style_banner" bg_opa="255" radius="0" border_width="0" pad_hor="8" pad_ver="4"
+               pad_column="6" text_font="font_small" flex_cross_place="center" flex_track_place="center"/>
+        <style name="style_alert_warn" bg_color="#warn" bg_opa="255" text_color="#bg"/>
+        <style name="style_alert_err" bg_color="#danger" bg_opa="255" text_color="0xffffff"/>
+        <style name="style_badge_btn" radius="9" pad_hor="6" pad_ver="0" border_width="0" shadow_width="0"/>
+        <style name="style_toast" bg_color="#surface2" bg_opa="255" border_width="1" border_color="#line"
+               radius="8" pad_hor="12" pad_ver="8" text_color="#text" text_font="font_small"/>
+        <style name="style_toast_err" bg_color="#danger_bg" border_color="#danger"/>
+        <style name="style_overlay" bg_color="#bg" bg_opa="240" border_width="0" radius="0"
+               pad_all="16" pad_row="8" text_color="#text"/>
+
         <!-- Inputs -->
         <style name="style_textarea" bg_color="#surface2" bg_opa="255" border_width="1"
                border_color="#line" radius="6" text_color="#text" pad_hor="8" pad_ver="5"/>
@@ -115,6 +132,15 @@
         <string name="radio_sf"     value="SF11"/>
         <string name="radio_cr"     value="4/5"/>
         <string name="contacts_summary" value="6 nodes | 3 companions | 2 repeaters | 1 room"/>
+
+        <!-- Problems. level: 0 = none, 1 = warning, 2 = error. On the device these
+             start empty; the values here are what the previewer shows. -->
+        <int    name="alert_count"  value="3"/>
+        <int    name="alert_level"  value="2"/>
+        <string name="banner_text"  value="Radio not available: can't send or receive"/>
+        <int    name="banner_level" value="2"/>
+        <string name="toast_text"   value=""/>
+        <int    name="toast_level"  value="0"/>
 
         <!-- Conversation screen -->
         <string name="chat_title"    value="Alice"/>

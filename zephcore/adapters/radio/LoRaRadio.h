@@ -58,6 +58,8 @@ public:
 	float getLastRSSI() const override;
 	float getLastSNR() const override;
 	bool isRadioReady() override;
+	/* The radio device was probed and is usable; false when begin() found no chip. */
+	bool isDeviceReady() const { return device_is_ready(_dev); }
 
 	/* Packet statistics */
 	uint32_t getPacketsRecv() const override { return (uint32_t)atomic_get(&_packets_recv); }

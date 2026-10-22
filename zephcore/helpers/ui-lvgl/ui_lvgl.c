@@ -13,6 +13,11 @@
  * Wakeups: a k_timer armed with LVGL's next deadline, plus an input callback.
  * The pointer read timer is paused while the screen is untouched, so an idle
  * UI does not wake the main loop.
+ *
+ * Problems are shown three ways: a banner for ongoing conditions (radio not
+ * ready), the Alerts screen behind the status-bar badge (every logged error
+ * and warning, through a log backend, plus the conditions above), and a toast
+ * for the result of an action the user just took.
  */
 
 #include <zephyr/kernel.h>
@@ -21,6 +26,10 @@
 #include <zephyr/input/input.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
+#ifdef CONFIG_LOG
+#include <zephyr/logging/log_backend.h>
+#include <zephyr/logging/log_output.h>
+#endif
 #include <lvgl.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,11 +55,20 @@ LOG_MODULE_REGISTER(ui_lvgl, LOG_LEVEL_INF);
 #define EPOCH_VALID	1735689600u
 /* Keep reading the pointer this long after the last input event. */
 #define INPUT_IDLE_MS	300
+#define ALERT_MAX	16
+#define ALERT_TEXT_LEN	96
+#define TOAST_MS	3000
+
+enum alert_level {
+	ALERT_NONE = 0,
+	ALERT_WARN = 1,
+	ALERT_ERR = 2,
+};
 
 enum {
 	D_NODE = BIT(0), D_CLOCK = BIT(1), D_BATT = BIT(2), D_RADIO = BIT(3),
 	D_LINK = BIT(4), D_SETTINGS = BIT(5), D_RECENT = BIT(6), D_MSGS = BIT(7),
-	D_COUNT = BIT(8),
+	D_COUNT = BIT(8), D_ALERTS = BIT(9), D_BANNER = BIT(10),
 };
 
 struct ui_msg {
@@ -67,6 +85,16 @@ struct ui_recent {
 	char name[16];
 	int16_t rssi;
 	uint32_t age_s;
+};
+
+struct ui_alert {
+	uint32_t seq;
+	uint32_t epoch;
+	uint32_t uptime_s;
+	uint16_t count;
+	uint8_t level;
+	char source[24];
+	char text[ALERT_TEXT_LEN];
 };
 
 struct ui_model {
@@ -92,6 +120,13 @@ struct ui_model {
 	struct ui_recent recent[RECENT_MAX];
 	uint32_t msg_seq;
 	struct ui_msg msgs[MSG_MAX];
+	bool radio_known;
+	bool radio_ready;
+	bool gps_available;
+	uint32_t alert_seq;
+	uint32_t alert_seen_seq;
+	uint8_t alert_count;
+	struct ui_alert alerts[ALERT_MAX];
 };
 
 /* Written by any thread under model_lock; view is the main thread's copy. */
@@ -119,6 +154,8 @@ static struct conv_read conv_reads[CONV_MAX];
 static lv_obj_t *conv_screen;
 static char conv_name[NAME_LEN];
 static uint32_t conv_shown_seq;
+static lv_obj_t *alerts_screen;
+static lv_timer_t *toast_timer;
 
 static void wake(void)
 {
@@ -143,6 +180,108 @@ static void copy_str(char *dst, size_t len, const char *src)
 	strncpy(dst, src, len - 1);
 	dst[len - 1] = '\0';
 }
+
+/* ========== Alerts (any thread) ========== */
+
+static uint32_t model_now_epoch(const struct ui_model *m);
+
+/* Record a problem; a repeat of the newest identical entry only bumps its count. */
+static void add_alert_locked(enum alert_level level, const char *source, const char *text)
+{
+	for (int i = 0; i < model.alert_count; i++) {
+		struct ui_alert *a = &model.alerts[i];
+
+		if (a->level == level && strcmp(a->source, source) == 0 &&
+		    strncmp(a->text, text, sizeof(a->text) - 1) == 0) {
+			a->count++;
+			a->seq = ++model.alert_seq;
+			return;
+		}
+	}
+	if (model.alert_count == ALERT_MAX) {
+		/* Drop the oldest entry. */
+		int oldest = 0;
+
+		for (int i = 1; i < ALERT_MAX; i++) {
+			if (model.alerts[i].seq < model.alerts[oldest].seq) {
+				oldest = i;
+			}
+		}
+		model.alerts[oldest] = model.alerts[--model.alert_count];
+	}
+	struct ui_alert *a = &model.alerts[model.alert_count++];
+
+	a->seq = ++model.alert_seq;
+	a->level = level;
+	a->count = 1;
+	a->uptime_s = (uint32_t)(k_uptime_get() / 1000);
+	a->epoch = model_now_epoch(&model);
+	copy_str(a->source, sizeof(a->source), source);
+	copy_str(a->text, sizeof(a->text), text);
+}
+
+#ifdef CONFIG_LOG
+/* Log backend: every error and warning also becomes an alert. */
+static char log_line[ALERT_TEXT_LEN + 32];
+static size_t log_line_len;
+static struct k_spinlock log_lock;
+
+static int log_line_out(uint8_t *data, size_t length, void *ctx)
+{
+	ARG_UNUSED(ctx);
+	for (size_t i = 0; i < length && log_line_len < sizeof(log_line) - 1; i++) {
+		if (data[i] != '\r' && data[i] != '\n') {
+			log_line[log_line_len++] = (char)data[i];
+		}
+	}
+	return (int)length;
+}
+
+static uint8_t log_out_buf[64];
+LOG_OUTPUT_DEFINE(ui_log_output, log_line_out, log_out_buf, sizeof(log_out_buf));
+
+static void ui_log_process(const struct log_backend *const backend, union log_msg_generic *msg)
+{
+	uint8_t level = log_msg_get_level(&msg->log);
+
+	ARG_UNUSED(backend);
+	if (level != LOG_LEVEL_ERR && level != LOG_LEVEL_WRN) {
+		return;
+	}
+	K_SPINLOCK(&log_lock) {
+		log_line_len = 0;
+		log_output_msg_process(&ui_log_output, &msg->log, LOG_OUTPUT_FLAG_CRLF_NONE);
+		log_line[log_line_len] = '\0';
+
+		/* The line is "source: message"; keep them apart for the list. */
+		char source[24] = "";
+		const char *text = log_line;
+		const char *sep = strstr(log_line, ": ");
+
+		if (sep && (size_t)(sep - log_line) < sizeof(source)) {
+			memcpy(source, log_line, sep - log_line);
+			source[sep - log_line] = '\0';
+			text = sep + 2;
+		}
+		K_SPINLOCK(&model_lock) {
+			add_alert_locked(level == LOG_LEVEL_ERR ? ALERT_ERR : ALERT_WARN, source, text);
+		}
+	}
+	mark(D_ALERTS);
+}
+
+static void ui_log_panic(const struct log_backend *const backend)
+{
+	ARG_UNUSED(backend);
+}
+
+static const struct log_backend_api ui_log_api = {
+	.process = ui_log_process,
+	.panic = ui_log_panic,
+};
+
+LOG_BACKEND_DEFINE(ui_log_backend, ui_log_api, true);
+#endif /* CONFIG_LOG */
 
 /* ========== Formatting ========== */
 
@@ -201,6 +340,22 @@ static void set_int(lv_subject_t *subject, int32_t value)
 	if (lv_subject_get_int(subject) != value) {
 		lv_subject_set_int(subject, value);
 	}
+}
+
+/* ========== Toasts (main thread) ========== */
+
+static void toast_hide(lv_timer_t *timer)
+{
+	ARG_UNUSED(timer);
+	lv_subject_set_int(mcui_toast_level, 0);
+}
+
+static void toast(enum alert_level level, const char *text)
+{
+	lv_subject_set_string(mcui_toast_text, text);
+	lv_subject_set_int(mcui_toast_level, level == ALERT_ERR ? 2 : 1);
+	lv_timer_reset(toast_timer);
+	lv_timer_resume(toast_timer);
 }
 
 /* ========== Conversations ========== */
@@ -394,9 +549,7 @@ void ui_on_send(lv_event_t *e)
 	}
 	/* Sending needs the pending-DM / channel feedback path (ACK tracking,
 	 * retries, mirroring to the companion app) that the joystick UI owns. */
-	LOG_WRN("send from the touch UI is not implemented yet");
-	lv_textarea_set_text(ta, "");
-	lv_textarea_set_placeholder_text(ta, "Sending is not available yet");
+	toast(ALERT_ERR, "Not sent: sending from here isn't available yet");
 }
 
 /* ========== Advert buttons ========== */
@@ -410,18 +563,127 @@ static void set_last_advert(const char *kind)
 	set_string(mcui_last_advert, txt);
 }
 
+static bool radio_usable(const char *what)
+{
+	char txt[80];
+
+	if (view.radio_known && !view.radio_ready) {
+		snprintf(txt, sizeof(txt), "%s not sent: the radio is not available.", what);
+		toast(ALERT_ERR, txt);
+		return false;
+	}
+	return true;
+}
+
 void ui_on_advert_zerohop(lv_event_t *e)
 {
 	ARG_UNUSED(e);
+	if (!radio_usable("Advert")) {
+		set_string(mcui_last_advert, "not sent, radio off");
+		return;
+	}
 	mesh_send_zerohop_advert();
 	set_last_advert("zero-hop");
+	toast(ALERT_NONE, "Zero-hop advert queued");
 }
 
 void ui_on_advert_flood(lv_event_t *e)
 {
 	ARG_UNUSED(e);
+	if (!radio_usable("Advert")) {
+		set_string(mcui_last_advert, "not sent, radio off");
+		return;
+	}
 	mesh_send_flood_advert();
 	set_last_advert("flood");
+	toast(ALERT_NONE, "Flood advert queued");
+}
+
+/* ========== Alerts screen ========== */
+
+static void alerts_screen_deleted(lv_event_t *e)
+{
+	ARG_UNUSED(e);
+	alerts_screen = NULL;
+}
+
+static void fill_alerts(void)
+{
+	lv_obj_t *list = alerts_screen ? lv_obj_find_by_name(alerts_screen, "alert_list") : NULL;
+	const struct ui_alert *order[ALERT_MAX];
+	int n = view.alert_count;
+
+	if (!list) {
+		return;
+	}
+	lv_obj_clean(list);
+	for (int i = 0; i < n; i++) {
+		order[i] = &view.alerts[i];
+	}
+	/* Newest first. */
+	for (int i = 1; i < n; i++) {
+		for (int j = i; j > 0 && order[j]->seq > order[j - 1]->seq; j--) {
+			const struct ui_alert *t = order[j];
+
+			order[j] = order[j - 1];
+			order[j - 1] = t;
+		}
+	}
+	for (int i = 0; i < n; i++) {
+		const struct ui_alert *a = order[i];
+		char when[8], meta[32];
+
+		fmt_hm(when, sizeof(when), a->epoch, view.tz);
+		if (!when[0]) {
+			snprintf(when, sizeof(when), "+%us", (unsigned)MIN(a->uptime_s, 99999u));
+		}
+		if (a->count > 1) {
+			snprintf(meta, sizeof(meta), "%s  x%u", when, a->count);
+		} else {
+			copy_str(meta, sizeof(meta), when);
+		}
+		mcui_alert_row_create(list, a->level == ALERT_ERR ? "ERROR" : "WARNING",
+				      a->level == ALERT_ERR ? MCUI_DANGER : MCUI_WARN,
+				      a->source[0] ? a->source : "system", a->text, meta);
+	}
+	if (n == 0) {
+		lv_obj_t *empty = lv_label_create(list);
+
+		lv_label_set_text(empty, "No problems reported.");
+		lv_obj_add_style(empty, &mcui_style_text_muted, 0);
+	}
+}
+
+static void mark_alerts_seen(void)
+{
+	K_SPINLOCK(&model_lock) {
+		model.alert_seen_seq = model.alert_seq;
+	}
+	mark(D_ALERTS);
+}
+
+void ui_on_alerts_open(lv_event_t *e)
+{
+	lv_obj_t *scr = lv_event_get_current_target_obj(e);
+
+	if (alerts_screen != scr) {
+		alerts_screen = scr;
+		lv_obj_add_event_cb(scr, alerts_screen_deleted, LV_EVENT_DELETE, NULL);
+	}
+	fill_alerts();
+	mark_alerts_seen();
+}
+
+void ui_on_alerts_clear(lv_event_t *e)
+{
+	ARG_UNUSED(e);
+	K_SPINLOCK(&model_lock) {
+		model.alert_count = 0;
+		model.alert_seen_seq = model.alert_seq;
+	}
+	view.alert_count = 0;
+	fill_alerts();
+	mark(D_ALERTS | D_BANNER);
 }
 
 /* ========== Settings: subject -> mesh ========== */
@@ -435,6 +697,11 @@ static void settings_observer(lv_observer_t *observer, lv_subject_t *subject)
 		return;
 	}
 	if (subject == mcui_gps_on) {
+		if (v && !view.gps_available) {
+			toast(ALERT_ERR, "GPS not turned on: no GPS was found on this device.");
+			lv_subject_set_int(subject, 0);
+			return;
+		}
 		mesh_gps_set_enabled(v != 0);
 	} else if (subject == mcui_ble_on) {
 		mesh_ble_set_enabled(v != 0);
@@ -531,6 +798,28 @@ static void apply_model(uint32_t bits)
 	if (bits & D_MSGS) {
 		rebuild_chats();
 		conv_append_new();
+	}
+	if (bits & D_ALERTS) {
+		int unseen = 0;
+		int level = ALERT_NONE;
+
+		for (int i = 0; i < view.alert_count; i++) {
+			if (view.alerts[i].seq > view.alert_seen_seq) {
+				unseen++;
+				level = MAX(level, view.alerts[i].level);
+			}
+		}
+		set_int(mcui_alert_count, unseen);
+		set_int(mcui_alert_level, level);
+		fill_alerts();
+	}
+	if (bits & D_BANNER) {
+		if (view.radio_known && !view.radio_ready) {
+			set_string(mcui_banner_text, "Radio not available: can't send or receive");
+			set_int(mcui_banner_level, ALERT_ERR);
+		} else {
+			set_int(mcui_banner_level, ALERT_NONE);
+		}
 	}
 
 	applying = false;
@@ -654,6 +943,16 @@ int ui_init(void)
 		lv_subject_add_observer(settings[i], settings_observer, NULL);
 	}
 
+	/* globals.xml carries preview values for the problem subjects. */
+	lv_subject_set_int(mcui_alert_count, 0);
+	lv_subject_set_int(mcui_banner_level, 0);
+	lv_subject_set_int(mcui_toast_level, 0);
+	mcui_toast_create(lv_layer_top());
+	toast_timer = lv_timer_create(toast_hide, TOAST_MS, NULL);
+	lv_timer_set_auto_delete(toast_timer, false);
+	lv_timer_set_repeat_count(toast_timer, -1);
+	lv_timer_pause(toast_timer);
+
 	k_timer_init(&lvgl_timer, lvgl_timer_expired, NULL);
 	lv_screen_load(mcui_home);
 
@@ -664,7 +963,7 @@ int ui_init(void)
 
 	initialized = true;
 	atomic_set(&dirty, D_NODE | D_CLOCK | D_BATT | D_RADIO | D_LINK | D_SETTINGS | D_RECENT |
-			   D_MSGS | D_COUNT);
+			   D_MSGS | D_COUNT | D_ALERTS | D_BANNER);
 	LOG_INF("LVGL UI initialized");
 	return 0;
 }
@@ -779,6 +1078,23 @@ void ui_set_radio_runtime(uint8_t sync_word, uint16_t preamble_len, bool rx_duty
 	ARG_UNUSED(tx_active);
 }
 
+void ui_set_radio_available(bool available)
+{
+	bool changed;
+
+	K_SPINLOCK(&model_lock) {
+		changed = !model.radio_known || model.radio_ready != available;
+		model.radio_known = true;
+		model.radio_ready = available;
+		if (changed && !available) {
+			add_alert_locked(ALERT_ERR, "radio", "No working LoRa radio was found");
+		}
+	}
+	if (changed) {
+		mark(D_BANNER | D_ALERTS);
+	}
+}
+
 void ui_set_radio_stats(uint32_t packets_rx, uint32_t packets_tx, uint32_t packets_err)
 {
 	ARG_UNUSED(packets_rx);
@@ -854,7 +1170,23 @@ void ui_set_node_name(const char *name)
 
 void ui_set_gps_available(bool available)
 {
-	ARG_UNUSED(available);
+	K_SPINLOCK(&model_lock) {
+		model.gps_available = available;
+	}
+	mark(D_SETTINGS);
+}
+
+void ui_show_low_battery(bool hold)
+{
+	/* Called on the main thread by app/PowerPolicy.cpp just before shutdown. */
+	if (!initialized) {
+		return;
+	}
+	mcui_notice_overlay_create(lv_layer_top(), "Low battery", "Shutting down to protect the battery");
+	lv_refr_now(NULL);
+	if (hold) {
+		k_sleep(K_MSEC(3000));
+	}
 }
 
 void ui_set_gps_enabled(bool enabled)

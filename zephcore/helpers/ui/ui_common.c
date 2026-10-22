@@ -393,6 +393,12 @@ void ui_before_power_off(void)
 #endif
 }
 
+/* Only the LVGL UI shows a missing radio; the others keep this no-op. */
+__weak void ui_set_radio_available(bool available)
+{
+	ARG_UNUSED(available);
+}
+
 /* ========== Low-battery warning screen ==========
  * The policy itself is app/PowerPolicy.cpp. */
 #ifdef CONFIG_ZEPHCORE_UI_DISPLAY
@@ -430,7 +436,7 @@ void ui_show_low_battery(bool hold)
 		k_sleep(K_MSEC(3000));
 	}
 }
-#else
+#elif !defined(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
 void ui_show_low_battery(bool hold)
 {
 	ARG_UNUSED(hold);

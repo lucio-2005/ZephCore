@@ -6,6 +6,17 @@
 
         <status_bar/>
 
+        <!-- Ongoing problem (radio down, ...). Hidden when banner_level is 0. -->
+        <lv_obj width="100%" height="content" flex_flow="row" scrollable="false">
+            <style name="style_banner"/>
+            <style name="style_alert_warn"/>
+            <bind_style name="style_alert_err" subject="banner_level" ref_value="2"/>
+            <bind_flag_if_eq subject="banner_level" flag="hidden" ref_value="0"/>
+            <screen_create_event trigger="clicked" screen="alerts" anim_type="move_left" duration="200"/>
+            <lv_label bind_text="banner_text" flex_grow="1"/>
+            <lv_label text="Details &gt;"/>
+        </lv_obj>
+
         <lv_tabview width="100%" flex_grow="1" tab_bar_position="bottom" active="0">
             <style name="style_plain"/>
 

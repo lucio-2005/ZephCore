@@ -1,0 +1,37 @@
+<!-- Problems reported since boot: radio state and every logged error or warning. -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_alerts_open"/>
+
+        <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                style_pad_ver="4" style_pad_left="4">
+            <style name="style_statusbar"/>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <screen_load_event trigger="clicked" screen="home" anim_type="move_right" duration="200"/>
+                <lv_label text="&lt; Back" style_text_font="font_small"/>
+            </lv_button>
+            <lv_label text="Alerts" flex_grow="1">
+                <style name="style_title"/>
+            </lv_label>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <event_cb trigger="clicked" callback="ui_on_alerts_clear"/>
+                <lv_label text="Clear" style_text_font="font_small"/>
+            </lv_button>
+        </lv_obj>
+
+        <lv_obj name="alert_list" width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <alert_row level="ERROR" tint="#danger" source="sx126x" meta="boot"
+                       message="HAL init failed: -19"/>
+            <alert_row level="ERROR" tint="#danger" source="lora_radio_base" meta="boot"
+                       message="LoRa device not ready"/>
+            <alert_row level="WARNING" tint="#warn" source="littlefs" meta="boot"
+                       message="can't mount (LFS -84); formatting"/>
+        </lv_obj>
+    </view>
+</screen>

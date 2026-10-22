@@ -21,4 +21,5 @@ static inline void ui_push_radio_state(mesh::LoRaRadio &radio)
 			     radio.isInRecvMode(), radio.isTxActive());
 	ui_set_radio_stats(radio.getPacketsRecv(), radio.getPacketsSent(),
 			   radio.getPacketsRecvErrors());
+	ui_set_radio_available(radio.isDeviceReady());
 }

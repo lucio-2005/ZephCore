@@ -7,6 +7,15 @@
             <style name="style_title"/>
         </lv_label>
 
+        <lv_button width="content" height="18">
+            <style name="style_badge_btn"/>
+            <style name="style_alert_warn"/>
+            <bind_style name="style_alert_err" subject="alert_level" ref_value="2"/>
+            <bind_flag_if_eq subject="alert_count" flag="hidden" ref_value="0"/>
+            <screen_create_event trigger="clicked" screen="alerts" anim_type="move_left" duration="200"/>
+            <lv_label bind_text="alert_count" bind_text-fmt="! %d" align="center" style_text_font="font_small"/>
+        </lv_button>
+
         <lv_label bind_text="unread_total" bind_text-fmt="%d new">
             <style name="style_badge"/>
             <bind_flag_if_eq subject="unread_total" flag="hidden" ref_value="0"/>

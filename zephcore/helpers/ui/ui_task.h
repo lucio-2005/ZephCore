@@ -96,6 +96,12 @@ void ui_set_radio_runtime(uint8_t sync_word,
 			  bool radio_ready, bool in_rx, bool tx_active);
 
 /**
+ * Whether the radio device exists and initialised. False means nothing can be
+ * sent or received; UIs that can show a problem should say so.
+ */
+void ui_set_radio_available(bool available);
+
+/**
  * Update radio packet counters for display.
  */
 void ui_set_radio_stats(uint32_t packets_rx, uint32_t packets_tx,

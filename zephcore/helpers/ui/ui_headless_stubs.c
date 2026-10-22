@@ -54,6 +54,11 @@ WEAK void ui_set_radio_runtime(uint8_t sync_word,
 	ARG_UNUSED(radio_ready); ARG_UNUSED(in_rx); ARG_UNUSED(tx_active);
 }
 
+WEAK void ui_set_radio_available(bool available)
+{
+	ARG_UNUSED(available);
+}
+
 WEAK void ui_set_radio_stats(uint32_t packets_rx, uint32_t packets_tx,
 			     uint32_t packets_err)
 {

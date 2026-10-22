@@ -27,6 +27,9 @@ LV_FONT_DECLARE(mcui_font_big)
 #define MCUI_KIND_RPT lv_color_hex(0xf5a524)
 #define MCUI_KIND_ROOM lv_color_hex(0xa78bfa)
 #define MCUI_KIND_CHANNEL lv_color_hex(0x60a5fa)
+#define MCUI_DANGER lv_color_hex(0xef4444)
+#define MCUI_DANGER_BG lv_color_hex(0x3b1416)
+#define MCUI_WARN lv_color_hex(0xf59e0b)
 #define MCUI_GAP_S 4
 #define MCUI_GAP_M 6
 #define MCUI_GAP_L 10
@@ -45,6 +48,12 @@ extern lv_subject_t * mcui_radio_bw;
 extern lv_subject_t * mcui_radio_sf;
 extern lv_subject_t * mcui_radio_cr;
 extern lv_subject_t * mcui_contacts_summary;
+extern lv_subject_t * mcui_alert_count;
+extern lv_subject_t * mcui_alert_level;
+extern lv_subject_t * mcui_banner_text;
+extern lv_subject_t * mcui_banner_level;
+extern lv_subject_t * mcui_toast_text;
+extern lv_subject_t * mcui_toast_level;
 extern lv_subject_t * mcui_chat_title;
 extern lv_subject_t * mcui_chat_path;
 extern lv_subject_t * mcui_show_keyboard;
@@ -77,6 +86,13 @@ extern lv_style_t mcui_style_bubble_out;
 extern lv_style_t mcui_style_tabbar;
 extern lv_style_t mcui_style_tab_btn;
 extern lv_style_t mcui_style_tab_btn_checked;
+extern lv_style_t mcui_style_banner;
+extern lv_style_t mcui_style_alert_warn;
+extern lv_style_t mcui_style_alert_err;
+extern lv_style_t mcui_style_badge_btn;
+extern lv_style_t mcui_style_toast;
+extern lv_style_t mcui_style_toast_err;
+extern lv_style_t mcui_style_overlay;
 extern lv_style_t mcui_style_textarea;
 extern lv_style_t mcui_style_textarea_focused;
 extern lv_style_t mcui_style_track;
@@ -91,6 +107,7 @@ extern lv_style_t mcui_style_keyboard_ctrl;
 
 extern lv_obj_t * mcui_home;
 
+lv_obj_t * mcui_alert_row_create(lv_obj_t * parent, const char * level, lv_color_t tint, const char * source, const char * message, const char * meta);
 lv_obj_t * mcui_avatar_create(lv_obj_t * parent, const char * letter, lv_color_t tint);
 lv_obj_t * mcui_chat_row_create(lv_obj_t * parent, const char * title, const char * letter, lv_color_t tint, const char * preview, const char * when, const char * path, const char * unread, bool is_read);
 lv_obj_t * mcui_contact_row_create(lv_obj_t * parent, const char * name, const char * letter, const char * kind, lv_color_t tint, const char * heard, const char * hops, const char * snr);
@@ -98,15 +115,20 @@ lv_obj_t * mcui_kv_row_create(lv_obj_t * parent, const char * key, lv_subject_t 
 lv_obj_t * mcui_mc_switch_create(lv_obj_t * parent, lv_subject_t * subject);
 lv_obj_t * mcui_msg_in_create(lv_obj_t * parent, const char * sender, const char * text, const char * meta);
 lv_obj_t * mcui_msg_out_create(lv_obj_t * parent, const char * text, const char * meta);
+lv_obj_t * mcui_notice_overlay_create(lv_obj_t * parent, const char * title, const char * detail);
 lv_obj_t * mcui_section_label_create(lv_obj_t * parent, const char * text);
 lv_obj_t * mcui_setting_row_create(lv_obj_t * parent, const char * label, const char * hint);
 lv_obj_t * mcui_status_bar_create(lv_obj_t * parent);
+lv_obj_t * mcui_toast_create(lv_obj_t * parent);
+lv_obj_t * mcui_alerts_create(void);
 lv_obj_t * mcui_conversation_create(void);
 lv_obj_t * mcui_home_create(void);
 
 /* Event callbacks named in the XML; the application provides them. */
 void ui_on_advert_flood(lv_event_t * e);
 void ui_on_advert_zerohop(lv_event_t * e);
+void ui_on_alerts_clear(lv_event_t * e);
+void ui_on_alerts_open(lv_event_t * e);
 void ui_on_conversation_open(lv_event_t * e);
 void ui_on_send(lv_event_t * e);
 

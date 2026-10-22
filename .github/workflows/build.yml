@@ -274,10 +274,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-          gcc-aarch64-linux-gnu   g++-aarch64-linux-gnu
+          gcc-aarch64-linux-gnu   g++-aarch64-linux-gnu \
+          libsdl2-dev
 
     - name: build firmwares
       run: bash build.sh linux
+
+    # LVGL touch UI: generated code must match its XML, and the desktop preview must build.
+    - name: compile-only roles
+      run: |
+        python3 zephcore/scripts/lvgl_xml2c.py zephcore/helpers/ui-lvgl/xml zephcore/helpers/ui-lvgl/generated --check
+        west build -b native_sim/native/64 zephcore --pristine -- \
+          -DEXTRA_CONF_FILE="boards/linux_native/femtofox.conf;boards/linux_native/lvgl_display.conf"
 
     - name: ccache stats
       if: always()

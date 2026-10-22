@@ -1,0 +1,11 @@
+<!-- Short result message. The device creates one on the top layer and shows it by
+     setting toast_text and toast_level (1 = info, 2 = error); 0 hides it. -->
+<component>
+    <view extends="lv_obj" width="content" height="content" align="bottom_mid" y="-40" style_max_width="300"
+          scrollable="false" clickable="false">
+        <style name="style_toast"/>
+        <bind_style name="style_toast_err" subject="toast_level" ref_value="2"/>
+        <bind_flag_if_eq subject="toast_level" flag="hidden" ref_value="0"/>
+        <lv_label bind_text="toast_text" style_max_width="276"/>
+    </view>
+</component>
