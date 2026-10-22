@@ -21,6 +21,10 @@
         <color name="kind_channel" value="0x60a5fa"/>
         <color name="kind_sensor"  value="0xf472b6"/>
 
+        <!-- Map without tiles -->
+        <color name="map_bg"       value="0x13202b"/>
+        <color name="map_line"     value="0x2a3b4a"/>
+
         <!-- Problems -->
         <color name="danger"     value="0xef4444"/>
         <color name="danger_bg"  value="0x3b1416"/>
@@ -217,6 +221,13 @@
         <string name="rs_guest" value=""/>
         <string name="rs_admin" value="change"/>
         <string name="sum_sensors" value="Battery 4.12 V | 3 readings"/>
+
+        <!-- Map -->
+        <string name="map_status"     value="6 nodes with a position | 3.2 km scale"/>
+        <string name="map_attrib"     value=""/>
+        <string name="map_sel_name"   value="Monte Cavo"/>
+        <string name="map_sel_info"   value="Repeater | 21.4 km | heard 1m ago"/>
+        <string name="map_sel_action" value="Manage"/>
 
         <!-- Edit panel -->
         <string name="edit_title" value="Name"/>

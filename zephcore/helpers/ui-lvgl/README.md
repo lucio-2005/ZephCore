@@ -10,6 +10,8 @@ ui_lvgl.c           ui_task.h implementation: model -> subjects, lists, alerts, 
 ui_lvgl_settings.c  the Settings screens: NodePrefs -> subjects, changes -> ui_settings / ui_mesh_actions
 ui_lvgl_remote.c    Contacts tab, remote management (login, requests, console, remote settings), Sensors
 ui_lvgl_edit.c      the edit panel for one text or number value
+ui_lvgl_map.c       the map: markers, pan and zoom, drawn in one callback
+ui_map_tiles.*      offline tiles (scripts/map_tiles.py makes them), native_sim only for now
 ui_settings.*       NodePrefs access through the CompanionMesh methods the app's commands use
 ui_remote.*         contact table and remote requests (C API over CompanionMesh)
 ```
@@ -36,6 +38,7 @@ ui_remote.*         contact table and remote requests (C API over CompanionMesh)
   `row_buzzer`, `dev_buzzer`, and `edit_input` / `edit_kbd` in the edit panel.
   Remote: `remote_login`, `remote_rows`, the `act_*` buttons (shown by node type and role),
   `console_list` / `console_input` / `console_kbd`, `sensor_rows`.
+  Map: `map_area` (drawn by the device; children sit on top), `map_card`, `map_open`.
 - Settings subjects (`set_*`, `sum_*`) hold dropdown indexes in the order of the XML options;
   `ui_lvgl_settings.c` maps them to NodePrefs values, so keep the two in step.
 - Subjects in `globals.xml`; `ui_lvgl.c` sets them from the mesh.
@@ -45,7 +48,8 @@ ui_remote.*         contact table and remote requests (C API over CompanionMesh)
   `ui_on_edit_cancel`, `ui_on_radio_save`, `ui_on_reboot`, `ui_on_factory_reset`,
   `ui_on_contact_open`, `ui_on_remote_open`, `ui_on_remote_login`, `ui_on_remote_action`
   (user_data names the action), `ui_on_console_send`, `ui_on_console_close`,
-  `ui_on_rsettings_reload`, `ui_on_rsettings_close`, `ui_on_sensors_open`, `ui_on_sensors_refresh`.
+  `ui_on_rsettings_reload`, `ui_on_rsettings_close`, `ui_on_sensors_open`, `ui_on_sensors_refresh`,
+  `ui_on_map_open`, `ui_on_map_zoom` (user_data `in`, `out` or `fit`), `ui_on_map_open_node`.
 - value_row keys starting with `r.` belong to the remote screen, the others to Settings.
 - `user_data="$prop"` passes a component's string property to the callback.
 

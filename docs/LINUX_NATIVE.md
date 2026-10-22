@@ -215,7 +215,18 @@ rm -rf build && west build -b native_sim/native/64 zephcore -- \
 
 Without a radio the lists stay empty. Add `CONFIG_ZEPHCORE_UI_LVGL_DEMO_DATA=y` (for example
 in a small extra `.conf` at the end of `EXTRA_CONF_FILE`) to fill them with sample messages
-and heard nodes at boot.
+and heard nodes at boot, and sample contacts that answer remote management requests.
+
+The map (Contacts tab > Map) draws offline tiles when it finds them in `tiles/` in the working
+directory, or in the folder `ZEPHCORE_MAP_TILES` names. Tiles are not included: convert a
+folder of 256 x 256 `<z>/<x>/<y>.png` tiles whose terms allow offline use (not bulk downloads
+from tile.openstreetmap.org, which its policy forbids) and keep the source's credit:
+
+```bash
+python3 zephcore/scripts/map_tiles.py my-png-tiles tiles --attribution "(c) OpenStreetMap contributors"
+```
+
+Without tiles, or at a zoom the folder lacks, the map shows range rings around your position.
 
 ---
 

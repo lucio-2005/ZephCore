@@ -28,6 +28,8 @@ LV_FONT_DECLARE(mcui_font_big)
 #define MCUI_KIND_ROOM lv_color_hex(0xa78bfa)
 #define MCUI_KIND_CHANNEL lv_color_hex(0x60a5fa)
 #define MCUI_KIND_SENSOR lv_color_hex(0xf472b6)
+#define MCUI_MAP_BG lv_color_hex(0x13202b)
+#define MCUI_MAP_LINE lv_color_hex(0x2a3b4a)
 #define MCUI_DANGER lv_color_hex(0xef4444)
 #define MCUI_DANGER_BG lv_color_hex(0x3b1416)
 #define MCUI_WARN lv_color_hex(0xf59e0b)
@@ -118,6 +120,11 @@ extern lv_subject_t * mcui_rs_owner;
 extern lv_subject_t * mcui_rs_guest;
 extern lv_subject_t * mcui_rs_admin;
 extern lv_subject_t * mcui_sum_sensors;
+extern lv_subject_t * mcui_map_status;
+extern lv_subject_t * mcui_map_attrib;
+extern lv_subject_t * mcui_map_sel_name;
+extern lv_subject_t * mcui_map_sel_info;
+extern lv_subject_t * mcui_map_sel_action;
 extern lv_subject_t * mcui_edit_title;
 extern lv_subject_t * mcui_edit_hint;
 
@@ -190,6 +197,7 @@ lv_obj_t * mcui_value_row_create(lv_obj_t * parent, const char * label, lv_subje
 lv_obj_t * mcui_alerts_create(void);
 lv_obj_t * mcui_conversation_create(void);
 lv_obj_t * mcui_home_create(void);
+lv_obj_t * mcui_map_create(void);
 lv_obj_t * mcui_remote_create(void);
 lv_obj_t * mcui_sensors_create(void);
 lv_obj_t * mcui_settings_advanced_create(void);
@@ -214,6 +222,9 @@ void ui_on_edit(lv_event_t * e);
 void ui_on_edit_cancel(lv_event_t * e);
 void ui_on_edit_save(lv_event_t * e);
 void ui_on_factory_reset(lv_event_t * e);
+void ui_on_map_open(lv_event_t * e);
+void ui_on_map_open_node(lv_event_t * e);
+void ui_on_map_zoom(lv_event_t * e);
 void ui_on_radio_save(lv_event_t * e);
 void ui_on_reboot(lv_event_t * e);
 void ui_on_remote_action(lv_event_t * e);

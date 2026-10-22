@@ -61,8 +61,13 @@ static void demo_fill(int i, struct ui_contact *out)
 	out->type = demo_nodes[i].type;
 	out->out_path_len = demo_nodes[i].path_len;
 	out->age_s = demo_nodes[i].age_s;
-	out->lat_e6 = 41900000 + i * 13000;
-	out->lon_e6 = 12500000 - i * 21000;
+	static const int32_t pos[][2] = {
+		{41746200, 12704100}, {41893100, 12483000}, {41958800, 12511200},
+		{41871400, 12560300}, {41922700, 12446900}, {41853900, 12402100},
+	};
+
+	out->lat_e6 = pos[i][0];
+	out->lon_e6 = pos[i][1];
 }
 
 /* The one answer in flight. */

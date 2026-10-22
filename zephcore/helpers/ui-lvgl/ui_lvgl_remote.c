@@ -273,12 +273,18 @@ static void filter_changed(lv_observer_t *observer, lv_subject_t *subject)
 void ui_on_contact_open(lv_event_t *e)
 {
 	uintptr_t slot = (uintptr_t)lv_obj_get_user_data(lv_event_get_current_target_obj(e));
-	struct ui_contact c;
 
 	if (slot == 0 || slot > CONTACT_ROWS_MAX) {
 		return;		/* a previewer sample row */
 	}
-	if (!ui_contacts_find(row_keys[slot - 1], UI_PUB_KEY_SIZE, &c)) {
+	ui_lvgl_open_contact(row_keys[slot - 1]);
+}
+
+void ui_lvgl_open_contact(const uint8_t *pub_key)
+{
+	struct ui_contact c;
+
+	if (!ui_contacts_find(pub_key, UI_PUB_KEY_SIZE, &c)) {
 		ui_lvgl_toast(true, "That contact was removed");
 		ui_lvgl_contacts_refresh(true);
 		return;

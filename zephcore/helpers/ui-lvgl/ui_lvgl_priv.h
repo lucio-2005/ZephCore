@@ -59,5 +59,12 @@ void ui_lvgl_remote_edit(const char *key);
 /* Rebuild the Contacts tab if the contact table changed (or force). */
 void ui_lvgl_contacts_refresh(bool force);
 void ui_lvgl_remote_packet_sent(void);
+/* A companion opens a chat, any other node the remote screen. */
+void ui_lvgl_open_contact(const uint8_t *pub_key);
+
+/* ui_lvgl_map.c */
+
+/* Reload the nodes shown if the map is open. */
+void ui_lvgl_map_refresh(void);
 
 #endif /* ZEPHCORE_UI_LVGL_PRIV_H */

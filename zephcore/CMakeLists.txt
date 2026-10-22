@@ -794,9 +794,12 @@ if(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
     helpers/ui-lvgl/ui_lvgl_edit.c
     helpers/ui-lvgl/ui_lvgl_settings.c
     helpers/ui-lvgl/ui_lvgl_remote.c
+    helpers/ui-lvgl/ui_lvgl_map.c
+    helpers/ui-lvgl/ui_map_tiles.c
     helpers/ui-lvgl/ui_settings.cpp
     helpers/ui-lvgl/ui_remote.cpp
     helpers/ui/remote_parse.c
+    helpers/ui/map_math.c
     helpers/ui/telemetry_text.cpp
     ${_ui_lvgl_generated}
   )

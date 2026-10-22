@@ -378,6 +378,26 @@
       "source": "tests/unit/remote_parse_tests.cpp"
     },
     {
+      "id": "UNIT-MAP-001",
+      "name": "Web Mercator matches slippy-map tile numbers",
+      "source": "tests/unit/map_math_tests.cpp"
+    },
+    {
+      "id": "UNIT-MAP-002",
+      "name": "Distances: haversine, and the text the UI shows",
+      "source": "tests/unit/map_math_tests.cpp"
+    },
+    {
+      "id": "UNIT-MAP-003",
+      "name": "Scale bar: a 1-2-5 distance no longer than asked",
+      "source": "tests/unit/map_math_tests.cpp"
+    },
+    {
+      "id": "UNIT-MAP-004",
+      "name": "Fit zoom: the largest zoom that holds the box",
+      "source": "tests/unit/map_math_tests.cpp"
+    },
+    {
       "id": "UNIT-POLICY-001",
       "name": "Reply routing and scope truth tables",
       "source": "tests/unit/policy_tests.cpp"

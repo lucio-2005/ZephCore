@@ -852,6 +852,7 @@ static void apply_model(uint32_t bits)
 	if (bits & D_RECENT) {
 		/* Adverts were heard: the contact table may have changed. */
 		ui_lvgl_contacts_refresh(false);
+		ui_lvgl_map_refresh();
 	}
 	if (bits & D_MSGS) {
 		rebuild_chats();

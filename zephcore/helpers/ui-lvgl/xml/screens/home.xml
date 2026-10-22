@@ -48,6 +48,12 @@
                     </lv_label>
                     <mc_dropdown subject="contacts_filter" options="All&#10;Companions&#10;Repeaters&#10;Rooms&#10;Sensors"
                                  width="116"/>
+                    <lv_button width="content" height="content" style_margin_left="6">
+                        <style name="style_btn"/>
+                        <style name="style_btn_pressed" selector="pressed"/>
+                        <screen_create_event trigger="clicked" screen="map" anim_type="move_left" duration="200"/>
+                        <lv_label text="Map" style_text_font="font_small"/>
+                    </lv_button>
                 </lv_obj>
                 <lv_obj name="contact_list" width="100%" height="content" flex_flow="column" scrollable="false"
                         style_pad_row="#gap_m">
