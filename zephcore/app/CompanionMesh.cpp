@@ -70,9 +70,10 @@ CompanionMesh::CompanionMesh(mesh::Radio &radio, mesh::MillisecondClock &ms, mes
 	_pending_telemetry = 0;
 	_pending_discovery = 0;
 	_pending_req = 0;
-#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
-	_pending_joystick_ping_tag = 0;
-	_pending_joystick_admin_tag = 0;
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_REMOTE)
+	_pending_ui_login = 0;
+	_pending_ui_ping_tag = 0;
+	_pending_ui_admin_tag = 0;
 #endif
 	_pending_channel_head = 0;
 	_pending_channel_tail = 0;
@@ -965,8 +966,8 @@ void CompanionMesh::onCommandDataRecv(const ContactInfo &contact, mesh::Packet *
 	queueMessage(contact, TXT_TYPE_CLI_DATA, pkt, sender_timestamp, nullptr, 0, text);
 	pushMsgWaiting();
 	{
-		struct ui_joystick_cli_data cli = { text };
-		ui_notify_joystick_event(UI_JOYSTICK_CLI_RESPONSE, contact.id.pub_key, &cli);
+		struct ui_remote_cli_data cli = { text };
+		ui_notify_remote_event(UI_REMOTE_CLI_RESPONSE, contact.id.pub_key, &cli);
 	}
 }
 
@@ -1191,6 +1192,13 @@ int CompanionMesh::appendSelfTelemetry(uint8_t *reply, uint8_t permissions)
 	return tlen;
 }
 
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_REMOTE)
+int CompanionMesh::uiSelfTelemetry(uint8_t *out)
+{
+	return appendSelfTelemetry(out, TELEM_PERM_BASE | TELEM_PERM_LOCATION | TELEM_PERM_ENVIRONMENT);
+}
+#endif
+
 uint8_t CompanionMesh::onContactRequest(const ContactInfo &contact, uint32_t sender_timestamp,
 	const uint8_t *data, uint8_t len, uint8_t *reply)
 {
@@ -1264,10 +1272,14 @@ void CompanionMesh::onContactResponse(const ContactInfo &contact, const uint8_t 
 	memcpy(&tag, data, 4);
 	LOG_DBG("onContactResponse: tag=%08x, _pending_login=%08x", tag, _pending_login);
 
-	// Check for login response
-	if (_pending_login && memcmp(&_pending_login, contact.id.pub_key, 4) == 0) {
+	// Check for login response: the app's, or one an on-device UI sent
+	bool app_login = _pending_login && memcmp(&_pending_login, contact.id.pub_key, 4) == 0;
+	bool ui_login = false;
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_REMOTE)
+	ui_login = _pending_ui_login && memcmp(&_pending_ui_login, contact.id.pub_key, 4) == 0;
+#endif
+	if (app_login || ui_login) {
 		LOG_INF("onContactResponse: LOGIN RESPONSE MATCHED!");
-		_pending_login = 0;
 
 		uint8_t rsp[16];
 		int i = 0;
@@ -1302,40 +1314,47 @@ void CompanionMesh::onContactResponse(const ContactInfo &contact, const uint8_t 
 			memcpy(&rsp[i], contact.id.pub_key, 6);
 			i += 6;
 		}
-		sendPush(rsp[0], &rsp[1], i - 1);
-		{
-			struct ui_joystick_login_data login = {
+		if (app_login) {
+			_pending_login = 0;
+			sendPush(rsp[0], &rsp[1], i - 1);
+		}
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_REMOTE)
+		if (ui_login) {
+			struct ui_remote_login_data login = {
 				rsp[0] == PUSH_CODE_LOGIN_SUCCESS,
 				rsp[1],  /* permissions (0 for fail/legacy) */
 				tag,     /* server_time */
 			};
-			ui_notify_joystick_event(UI_JOYSTICK_LOGIN_RESULT, contact.id.pub_key, &login);
+			_pending_ui_login = 0;
+			ui_notify_remote_event(UI_REMOTE_LOGIN_RESULT, contact.id.pub_key, &login);
 		}
+#endif
 		return;
 	}
 
-#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
-	/* Joystick-originated requests (ping and admin binary): tag-based match takes priority
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_REMOTE)
+	/* UI-originated requests (ping and admin binary): tag-based match takes priority
 	 * over the pubkey-based _pending_status check below.  Without this, a stale
 	 * _pending_status for the same repeater would intercept any response and forward it
-	 * to BLE, causing a joystick timeout. */
-	if ((_pending_joystick_ping_tag  && tag == _pending_joystick_ping_tag) ||
-	    (_pending_joystick_admin_tag && tag == _pending_joystick_admin_tag)) {
-		_pending_joystick_ping_tag  = 0;
-		_pending_joystick_admin_tag = 0;
+	 * to BLE, causing a UI timeout. */
+	if ((_pending_ui_ping_tag  && tag == _pending_ui_ping_tag) ||
+	    (_pending_ui_admin_tag && tag == _pending_ui_admin_tag)) {
+		_pending_ui_ping_tag  = 0;
+		_pending_ui_admin_tag = 0;
 		int8_t snr_remote = INT8_MIN;
 		if (len >= 48) {
 			int16_t rs;
 			memcpy(&rs, &data[46], 2);
 			snr_remote = (int8_t)(rs / 4);
 		}
-		struct ui_joystick_req_response_data rr = {
+		struct ui_remote_req_response_data rr = {
 			(int8_t)_radio->getLastSNR(),
 			snr_remote,
 			len > 4 ? &data[4] : nullptr,
 			(uint8_t)(len > 4 ? len - 4 : 0),
+			tag,
 		};
-		ui_notify_joystick_event(UI_JOYSTICK_REQ_RESPONSE, contact.id.pub_key, &rr);
+		ui_notify_remote_event(UI_REMOTE_REQ_RESPONSE, contact.id.pub_key, &rr);
 		return;
 	}
 #endif
@@ -1405,13 +1424,14 @@ void CompanionMesh::onContactResponse(const ContactInfo &contact, const uint8_t 
 			memcpy(&rs, &data[46], 2);
 			snr_remote = (int8_t)(rs / 4);
 		}
-		struct ui_joystick_req_response_data rr = {
+		struct ui_remote_req_response_data rr = {
 			(int8_t)_radio->getLastSNR(),
 			snr_remote,
 			len > 4 ? &data[4] : nullptr,
 			(uint8_t)(len > 4 ? len - 4 : 0),
+			tag,
 		};
-		ui_notify_joystick_event(UI_JOYSTICK_REQ_RESPONSE, contact.id.pub_key, &rr);
+		ui_notify_remote_event(UI_REMOTE_REQ_RESPONSE, contact.id.pub_key, &rr);
 	}
 
 	/* Arduino b204f9a1: let the app know about unknown/unhandled responses
@@ -1488,10 +1508,10 @@ void CompanionMesh::onControlDataRecv(mesh::Packet *packet)
 	if (packet->payload_len >= 6 + PUB_KEY_SIZE &&
 	    (packet->payload[0] & 0xF0) == CTL_TYPE_NODE_DISCOVER_RESP &&
 	    (packet->payload[0] & 0x0F) == ADV_TYPE_REPEATER) {
-		struct ui_joystick_discover_data dd = {
+		struct ui_remote_discover_data dd = {
 			(int8_t)packet->getSNR(), (int8_t)((int8_t)packet->payload[1] / 4), packet->path_len
 		};
-		ui_notify_joystick_event(UI_JOYSTICK_DISCOVER_RESP, &packet->payload[6], &dd);
+		ui_notify_remote_event(UI_REMOTE_DISCOVER_RESP, &packet->payload[6], &dd);
 	}
 
 	uint8_t buf[MAX_FRAME_SIZE];

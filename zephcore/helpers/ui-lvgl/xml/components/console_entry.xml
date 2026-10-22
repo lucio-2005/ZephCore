@@ -1,0 +1,14 @@
+<!-- One command sent from the console and the node's reply. -->
+<component>
+    <api>
+        <prop name="cmd" type="string" default=""/>
+        <prop name="reply" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="column" scrollable="false" clickable="false"
+          style_pad_row="2">
+        <style name="style_plain"/>
+        <lv_label text="$cmd" width="100%" style_text_color="#accent" style_text_font="font_small"/>
+        <lv_label text="$reply" width="100%"/>
+    </view>
+</component>

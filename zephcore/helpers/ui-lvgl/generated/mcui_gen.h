@@ -27,6 +27,7 @@ LV_FONT_DECLARE(mcui_font_big)
 #define MCUI_KIND_RPT lv_color_hex(0xf5a524)
 #define MCUI_KIND_ROOM lv_color_hex(0xa78bfa)
 #define MCUI_KIND_CHANNEL lv_color_hex(0x60a5fa)
+#define MCUI_KIND_SENSOR lv_color_hex(0xf472b6)
 #define MCUI_DANGER lv_color_hex(0xef4444)
 #define MCUI_DANGER_BG lv_color_hex(0x3b1416)
 #define MCUI_WARN lv_color_hex(0xf59e0b)
@@ -98,6 +99,25 @@ extern lv_subject_t * mcui_sum_location;
 extern lv_subject_t * mcui_sum_device;
 extern lv_subject_t * mcui_sum_bluetooth;
 extern lv_subject_t * mcui_sum_advanced;
+extern lv_subject_t * mcui_contacts_filter;
+extern lv_subject_t * mcui_remote_name;
+extern lv_subject_t * mcui_remote_role;
+extern lv_subject_t * mcui_remote_pwd_txt;
+extern lv_subject_t * mcui_remote_result_title;
+extern lv_subject_t * mcui_remote_state;
+extern lv_subject_t * mcui_rs_state;
+extern lv_subject_t * mcui_rs_name;
+extern lv_subject_t * mcui_rs_lat;
+extern lv_subject_t * mcui_rs_lon;
+extern lv_subject_t * mcui_rs_radio;
+extern lv_subject_t * mcui_rs_tx;
+extern lv_subject_t * mcui_rs_repeat;
+extern lv_subject_t * mcui_rs_adv;
+extern lv_subject_t * mcui_rs_fadv;
+extern lv_subject_t * mcui_rs_owner;
+extern lv_subject_t * mcui_rs_guest;
+extern lv_subject_t * mcui_rs_admin;
+extern lv_subject_t * mcui_sum_sensors;
 extern lv_subject_t * mcui_edit_title;
 extern lv_subject_t * mcui_edit_hint;
 
@@ -144,11 +164,15 @@ extern lv_style_t mcui_style_keyboard_ctrl;
 
 extern lv_obj_t * mcui_home;
 
+lv_obj_t * mcui_action_btn_create(lv_obj_t * parent, const char * text, const char * action);
 lv_obj_t * mcui_alert_row_create(lv_obj_t * parent, const char * level, lv_color_t tint, const char * source, const char * message, const char * meta);
 lv_obj_t * mcui_avatar_create(lv_obj_t * parent, const char * letter, lv_color_t tint);
 lv_obj_t * mcui_chat_row_create(lv_obj_t * parent, const char * title, const char * letter, lv_color_t tint, const char * preview, const char * when, const char * path, const char * unread, bool is_read);
+lv_obj_t * mcui_console_entry_create(lv_obj_t * parent, const char * cmd, const char * reply);
+lv_obj_t * mcui_console_panel_create(lv_obj_t * parent);
 lv_obj_t * mcui_contact_row_create(lv_obj_t * parent, const char * name, const char * letter, const char * kind, lv_color_t tint, const char * heard, const char * hops, const char * snr);
 lv_obj_t * mcui_edit_panel_create(lv_obj_t * parent);
+lv_obj_t * mcui_info_row_create(lv_obj_t * parent, const char * label, const char * value);
 lv_obj_t * mcui_kv_row_create(lv_obj_t * parent, const char * key, lv_subject_t * value);
 lv_obj_t * mcui_mc_dropdown_create(lv_obj_t * parent, lv_subject_t * subject, const char * options);
 lv_obj_t * mcui_mc_switch_create(lv_obj_t * parent, lv_subject_t * subject);
@@ -156,6 +180,7 @@ lv_obj_t * mcui_msg_in_create(lv_obj_t * parent, const char * sender, const char
 lv_obj_t * mcui_msg_out_create(lv_obj_t * parent, const char * text, const char * meta);
 lv_obj_t * mcui_nav_row_create(lv_obj_t * parent, const char * title, lv_subject_t * summary);
 lv_obj_t * mcui_notice_overlay_create(lv_obj_t * parent, const char * title, const char * detail);
+lv_obj_t * mcui_rsettings_panel_create(lv_obj_t * parent);
 lv_obj_t * mcui_section_label_create(lv_obj_t * parent, const char * text);
 lv_obj_t * mcui_setting_row_create(lv_obj_t * parent, const char * label, const char * hint);
 lv_obj_t * mcui_status_bar_create(lv_obj_t * parent);
@@ -165,6 +190,8 @@ lv_obj_t * mcui_value_row_create(lv_obj_t * parent, const char * label, lv_subje
 lv_obj_t * mcui_alerts_create(void);
 lv_obj_t * mcui_conversation_create(void);
 lv_obj_t * mcui_home_create(void);
+lv_obj_t * mcui_remote_create(void);
+lv_obj_t * mcui_sensors_create(void);
 lv_obj_t * mcui_settings_advanced_create(void);
 lv_obj_t * mcui_settings_bluetooth_create(void);
 lv_obj_t * mcui_settings_contacts_create(void);
@@ -179,6 +206,9 @@ void ui_on_advert_flood(lv_event_t * e);
 void ui_on_advert_zerohop(lv_event_t * e);
 void ui_on_alerts_clear(lv_event_t * e);
 void ui_on_alerts_open(lv_event_t * e);
+void ui_on_console_close(lv_event_t * e);
+void ui_on_console_send(lv_event_t * e);
+void ui_on_contact_open(lv_event_t * e);
 void ui_on_conversation_open(lv_event_t * e);
 void ui_on_edit(lv_event_t * e);
 void ui_on_edit_cancel(lv_event_t * e);
@@ -186,7 +216,14 @@ void ui_on_edit_save(lv_event_t * e);
 void ui_on_factory_reset(lv_event_t * e);
 void ui_on_radio_save(lv_event_t * e);
 void ui_on_reboot(lv_event_t * e);
+void ui_on_remote_action(lv_event_t * e);
+void ui_on_remote_login(lv_event_t * e);
+void ui_on_remote_open(lv_event_t * e);
+void ui_on_rsettings_close(lv_event_t * e);
+void ui_on_rsettings_reload(lv_event_t * e);
 void ui_on_send(lv_event_t * e);
+void ui_on_sensors_open(lv_event_t * e);
+void ui_on_sensors_refresh(lv_event_t * e);
 void ui_on_settings_open(lv_event_t * e);
 
 /* Initialise subjects and styles, then create the permanent screens. */

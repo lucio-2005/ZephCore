@@ -1316,19 +1316,31 @@ bool JoystickUITask::addRepeaterContact(const uint8_t *pubkey)
 void JoystickUITask::registerAdminReqTag(uint32_t tag)
 {
 	auto *cm = static_cast<CompanionMesh *>(_mesh);
-	if (cm) cm->setJoystickAdminTag(tag);
+	if (cm) cm->setUiAdminTag(tag);
+}
+
+void JoystickUITask::registerLoginPending(const uint8_t *pub_key)
+{
+	auto *cm = static_cast<CompanionMesh *>(_mesh);
+	if (cm) cm->setUiLoginPending(pub_key);
+}
+
+void JoystickUITask::clearLoginPending()
+{
+	auto *cm = static_cast<CompanionMesh *>(_mesh);
+	if (cm) cm->clearUiLoginPending();
 }
 
 void JoystickUITask::clearAdminReqTag()
 {
 	auto *cm = static_cast<CompanionMesh *>(_mesh);
-	if (cm) cm->clearJoystickAdminTag();
+	if (cm) cm->clearUiAdminTag();
 }
 
 void JoystickUITask::cancelContactPing()
 {
 	auto *cm = static_cast<CompanionMesh *>(_mesh);
-	if (cm) cm->clearJoystickPingTag();
+	if (cm) cm->clearUiPingTag();
 	memset(_pending_ping_pubkey, 0, sizeof(_pending_ping_pubkey));
 	_pending_ping_sent_ms = 0;
 }
@@ -1345,7 +1357,7 @@ bool JoystickUITask::sendContactPingZeroHop(const ContactInfo &contact, uint32_t
 	if (res != MSG_SEND_FAILED) {
 		memcpy(_pending_ping_pubkey, contact.id.pub_key, 4);
 		_pending_ping_sent_ms = 0;
-		cm->setJoystickPingTag(tag);
+		cm->setUiPingTag(tag);
 		ui_signal_tx();
 	}
 	return res != MSG_SEND_FAILED;

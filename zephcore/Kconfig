@@ -1369,6 +1369,14 @@ config ZEPHCORE_UI_OUTBOX
 	  DM retries until ACK, channel heard/not-heard feedback, and the
 	  mirror of the sent message to the companion app.
 
+config ZEPHCORE_UI_REMOTE
+	bool
+	default y if ZEPHCORE_UI_DESIGN_JOYSTICK || ZEPHCORE_UI_DESIGN_LVGL
+	help
+	  Remote management from an on-device UI: CompanionMesh tracks the
+	  UI's own login and requests apart from the app's and hands the
+	  answers to ui_notify_remote_event() (helpers/ui/ui_remote_events.h).
+
 config ZEPHCORE_UI_DESIGN_LVGL
 	bool "LVGL touch UI (colour display + pointer input)"
 	depends on ZEPHCORE_ROLE_COMPANION && LVGL && !ZEPHCORE_UI_DESIGN_JOYSTICK

@@ -158,8 +158,8 @@ extern "C" void ui_notify_channel_msg(const char *channel_name, const char *text
 	}
 }
 
-extern "C" void ui_notify_joystick_event(
-	enum ui_joystick_event_type type,
+extern "C" void ui_notify_remote_event(
+	enum ui_remote_event_type type,
 	const uint8_t *pub_key_prefix,
 	const void *payload
 ){
@@ -167,23 +167,23 @@ extern "C" void ui_notify_joystick_event(
 		return;
 	}
 	switch (type) {
-	case UI_JOYSTICK_LOGIN_RESULT: {
-		const auto *d = static_cast<const struct ui_joystick_login_data *>(payload);
+	case UI_REMOTE_LOGIN_RESULT: {
+		const auto *d = static_cast<const struct ui_remote_login_data *>(payload);
 		s_task->onRepeaterAdminLoginResult(pub_key_prefix, d->success, d->permissions, d->server_time);
 		break;
 	}
-	case UI_JOYSTICK_CLI_RESPONSE: {
-		const auto *d = static_cast<const struct ui_joystick_cli_data *>(payload);
+	case UI_REMOTE_CLI_RESPONSE: {
+		const auto *d = static_cast<const struct ui_remote_cli_data *>(payload);
 		s_task->onRepeaterAdminCliResponse(pub_key_prefix, d->text);
 		break;
 	}
-	case UI_JOYSTICK_REQ_RESPONSE: {
-		const auto *d = static_cast<const struct ui_joystick_req_response_data *>(payload);
+	case UI_REMOTE_REQ_RESPONSE: {
+		const auto *d = static_cast<const struct ui_remote_req_response_data *>(payload);
 		s_task->onRepeaterReqResponse(pub_key_prefix, d->snr_local, d->snr_remote, d->data, d->data_len);
 		break;
 	}
-	case UI_JOYSTICK_DISCOVER_RESP: {
-		const auto *d = static_cast<const struct ui_joystick_discover_data *>(payload);
+	case UI_REMOTE_DISCOVER_RESP: {
+		const auto *d = static_cast<const struct ui_remote_discover_data *>(payload);
 		s_task->onRepeaterDiscoverResp(pub_key_prefix, d->snr, d->snr_remote, d->path_len);
 		break;
 	}

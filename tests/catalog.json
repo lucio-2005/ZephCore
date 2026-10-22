@@ -343,6 +343,41 @@
       "source": "tests/unit/telemetry_text_tests.cpp"
     },
     {
+      "id": "UNIT-TTEXT-004",
+      "name": "Fields: labels, units and channels for the touch UI; GPS to 5 decimals",
+      "source": "tests/unit/telemetry_text_tests.cpp"
+    },
+    {
+      "id": "UNIT-TTEXT-005",
+      "name": "Fields stop at max and at the end-of-data marker",
+      "source": "tests/unit/telemetry_text_tests.cpp"
+    },
+    {
+      "id": "UNIT-RPARSE-001",
+      "name": "Repeater status: every RepeaterStats field, signed ones signed",
+      "source": "tests/unit/remote_parse_tests.cpp"
+    },
+    {
+      "id": "UNIT-RPARSE-002",
+      "name": "Room server status: posts and pushes after the common 48 bytes; short replies keep what they carry",
+      "source": "tests/unit/remote_parse_tests.cpp"
+    },
+    {
+      "id": "UNIT-RPARSE-003",
+      "name": "Neighbours: request bytes, entries, total, and a truncated entry dropped",
+      "source": "tests/unit/remote_parse_tests.cpp"
+    },
+    {
+      "id": "UNIT-RPARSE-004",
+      "name": "Owner info splits firmware, name and owner; missing fields are empty",
+      "source": "tests/unit/remote_parse_tests.cpp"
+    },
+    {
+      "id": "UNIT-RPARSE-005",
+      "name": "Durations: two largest units",
+      "source": "tests/unit/remote_parse_tests.cpp"
+    },
+    {
       "id": "UNIT-POLICY-001",
       "name": "Reply routing and scope truth tables",
       "source": "tests/unit/policy_tests.cpp"

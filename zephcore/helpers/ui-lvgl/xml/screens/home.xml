@@ -40,9 +40,15 @@
             <!-- ============ CONTACTS ============ -->
             <lv_tabview-tab text="Contacts" flex_flow="column">
                 <style name="style_page"/>
-                <lv_label bind_text="contacts_summary" width="100%">
-                    <style name="style_text_muted"/>
-                </lv_label>
+                <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                        style_flex_cross_place="center">
+                    <style name="style_plain"/>
+                    <lv_label bind_text="contacts_summary" flex_grow="1" height="15" long_mode="dots">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                    <mc_dropdown subject="contacts_filter" options="All&#10;Companions&#10;Repeaters&#10;Rooms&#10;Sensors"
+                                 width="116"/>
+                </lv_obj>
                 <lv_obj name="contact_list" width="100%" height="content" flex_flow="column" scrollable="false"
                         style_pad_row="#gap_m">
                     <style name="style_plain"/>
@@ -58,6 +64,8 @@
                                  heard="heard 1h ago" hops="3 hops" snr="SNR 1.0"/>
                     <contact_row name="Giulia" letter="G" kind="CHAT" tint="#kind_chat"
                                  heard="heard 3h ago" hops="4 hops" snr="SNR -6.0"/>
+                    <contact_row name="Garden" letter="G" kind="SENSOR" tint="#kind_sensor"
+                                 heard="heard 5h ago" hops="2 hops" snr=""/>
                 </lv_obj>
             </lv_tabview-tab>
 
@@ -104,6 +112,10 @@
                         <style name="style_text_muted"/>
                     </lv_label>
                 </lv_obj>
+
+                <nav_row title="Sensors" summary="sum_sensors">
+                    <screen_create_event trigger="clicked" screen="sensors" anim_type="move_left" duration="200"/>
+                </nav_row>
 
                 <section_label text="ADVERTISE"/>
                 <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" style_pad_column="6">

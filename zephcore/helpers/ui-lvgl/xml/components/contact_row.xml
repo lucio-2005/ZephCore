@@ -1,4 +1,5 @@
-<!-- One node in the Contacts list: companion (CHAT), repeater (RPT) or room server (ROOM). -->
+<!-- One node in the Contacts list: companion (CHAT), repeater (RPT), room server (ROOM) or
+     sensor (SENSOR). Tapping it opens a chat, or remote management (ui_on_contact_open). -->
 <component>
     <api>
         <prop name="name" type="string" default="Node"/>
@@ -13,6 +14,7 @@
     <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
         <style name="style_row"/>
         <style name="style_row_pressed" selector="pressed"/>
+        <event_cb trigger="clicked" callback="ui_on_contact_open"/>
 
         <avatar letter="$letter" tint="$tint"/>
 

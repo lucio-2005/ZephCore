@@ -332,19 +332,6 @@ static void fmt_hops(char *out, size_t len, uint8_t path_len)
 	}
 }
 
-static void fmt_age(char *out, size_t len, uint32_t age_s)
-{
-	if (age_s < 60) {
-		snprintf(out, len, "heard %us ago", (unsigned)age_s);
-	} else if (age_s < 3600) {
-		snprintf(out, len, "heard %um ago", (unsigned)(age_s / 60));
-	} else if (age_s < 86400) {
-		snprintf(out, len, "heard %uh ago", (unsigned)(age_s / 3600));
-	} else {
-		snprintf(out, len, "heard %ud ago", (unsigned)(age_s / 86400));
-	}
-}
-
 static void set_string(lv_subject_t *subject, const char *value)
 {
 	if (strcmp(lv_subject_get_string(subject), value) != 0) {
@@ -380,6 +367,30 @@ static void toast(enum alert_level level, const char *text)
 void ui_lvgl_toast(bool error, const char *text)
 {
 	toast(error ? ALERT_ERR : ALERT_WARN, text);
+}
+
+void ui_lvgl_wake(void)
+{
+	wake();
+}
+
+static void delete_on_unload(lv_event_t *e)
+{
+	lv_obj_delete(lv_event_get_target_obj(e));
+}
+
+void ui_lvgl_load_new_screen(lv_obj_t *scr)
+{
+	/* As the XML's screen_create_event does. */
+	lv_screen_load_anim(scr, LV_SCREEN_LOAD_ANIM_MOVE_LEFT, 200, 0, false);
+	lv_obj_add_event_cb(scr, delete_on_unload, LV_EVENT_SCREEN_UNLOADED, NULL);
+}
+
+void ui_lvgl_open_chat(const char *name, const char *path)
+{
+	lv_subject_set_string(mcui_chat_title, name);
+	lv_subject_set_string(mcui_chat_path, path);
+	ui_lvgl_load_new_screen(mcui_conversation_create());
 }
 
 /* ========== Conversations ========== */
@@ -839,27 +850,8 @@ static void apply_model(uint32_t bits)
 		set_int(mcui_unread_total, view.msg_count);
 	}
 	if (bits & D_RECENT) {
-		lv_obj_t *list = lv_obj_find_by_name(mcui_home, "contact_list");
-
-		if (view.recent_count) {
-			snprintf(buf, sizeof(buf), "%u recently heard", view.recent_count);
-		} else {
-			copy_str(buf, sizeof(buf), "No nodes heard yet");
-		}
-		set_string(mcui_contacts_summary, buf);
-		if (list) {
-			lv_obj_clean(list);
-			for (int i = 0; i < view.recent_count; i++) {
-				const struct ui_recent *r = &view.recent[i];
-				char letter[2] = {r->name[0] ? r->name[0] : '?', '\0'};
-				char heard[24], rssi[16];
-
-				fmt_age(heard, sizeof(heard), r->age_s);
-				snprintf(rssi, sizeof(rssi), "%d dBm", r->rssi);
-				mcui_contact_row_create(list, r->name, letter, "HEARD", MCUI_KIND_CHAT,
-							heard, rssi, "");
-			}
-		}
+		/* Adverts were heard: the contact table may have changed. */
+		ui_lvgl_contacts_refresh(false);
 	}
 	if (bits & D_MSGS) {
 		rebuild_chats();
@@ -1022,6 +1014,7 @@ int ui_init(void)
 	lv_subject_add_observer(mcui_ble_on, settings_observer, NULL);
 	applying = false;
 	ui_lvgl_settings_init();
+	ui_lvgl_remote_init();
 
 	/* globals.xml carries preview values for the problem subjects. */
 	lv_subject_set_int(mcui_alert_count, 0);
@@ -1141,6 +1134,10 @@ void ui_notify_channel_msg(const char *channel_name, const char *text, uint32_t 
 
 void ui_notify_packet_sent(void)
 {
+	/* CompanionMesh::logTx(), on the main thread. */
+	if (initialized) {
+		ui_lvgl_remote_packet_sent();
+	}
 }
 
 void ui_notify(enum ui_event event)

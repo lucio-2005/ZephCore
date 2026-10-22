@@ -355,9 +355,11 @@ private:
 	uint32_t _pending_telemetry;
 	uint32_t _pending_discovery;
 	uint32_t _pending_req;
-#ifdef CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK
-	uint32_t _pending_joystick_ping_tag;  /* matched by tag, before _pending_status */
-	uint32_t _pending_joystick_admin_tag; /* same, for admin binary requests */
+#ifdef CONFIG_ZEPHCORE_UI_REMOTE
+	/* Requests from an on-device UI, apart from the app's */
+	uint32_t _pending_ui_login;     /* pub key prefix, like _pending_login */
+	uint32_t _pending_ui_ping_tag;  /* matched by tag, before _pending_status */
+	uint32_t _pending_ui_admin_tag; /* same, for admin binary requests */
 #endif
 
 	/* Lazy contacts/channels writes */
@@ -398,17 +400,22 @@ private:
 	TransportKey _send_scope;
 	bool _send_scope_force_unscoped;
 
-	/* The joystick ping tag is independent of app requests and not cleared. */
+	/* The UI's pending requests are independent of the app's and not cleared. */
 	void clearPendingReqs() {
 		_pending_login = _pending_status = _pending_telemetry = _pending_discovery = _pending_req = 0;
 	}
 
-#ifdef CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK
+#ifdef CONFIG_ZEPHCORE_UI_REMOTE
 public:
-	void setJoystickPingTag(uint32_t tag)  { _pending_joystick_ping_tag = tag; }
-	void clearJoystickPingTag()            { _pending_joystick_ping_tag = 0; }
-	void setJoystickAdminTag(uint32_t tag) { _pending_joystick_admin_tag = tag; }
-	void clearJoystickAdminTag()           { _pending_joystick_admin_tag = 0; }
+	void setUiLoginPending(const uint8_t *pub_key) { memcpy(&_pending_ui_login, pub_key, 4); }
+	void clearUiLoginPending()             { _pending_ui_login = 0; }
+	void setUiPingTag(uint32_t tag)  { _pending_ui_ping_tag = tag; }
+	void clearUiPingTag()            { _pending_ui_ping_tag = 0; }
+	void setUiAdminTag(uint32_t tag) { _pending_ui_admin_tag = tag; }
+	void clearUiAdminTag()           { _pending_ui_admin_tag = 0; }
+	/* This node's own telemetry, as the app's self request gets it; out
+	 * holds MAX_PACKET_PAYLOAD - 4 bytes. */
+	int uiSelfTelemetry(uint8_t *out);
 private:
 #endif
 

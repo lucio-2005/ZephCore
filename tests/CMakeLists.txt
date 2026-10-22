@@ -20,6 +20,7 @@ add_executable(zephcore_unit
   unit/prefs_json_tests.cpp
   unit/lpp_tests.cpp
   unit/telemetry_text_tests.cpp
+  unit/remote_parse_tests.cpp
   unit/kiss_modem_tests.cpp
   support/hash_capture.cpp
   support/identity_utils_boundary.cpp
@@ -38,6 +39,7 @@ add_executable(zephcore_unit
   ${PRODUCTION}/helpers/PrefsJson.cpp
   ${PRODUCTION}/helpers/ConfigSerializer.cpp
   ${PRODUCTION}/helpers/ui/telemetry_text.cpp
+  ${PRODUCTION}/helpers/ui/remote_parse.c
   ${PRODUCTION}/app/KissModem.cpp
 )
 target_compile_features(zephcore_unit PRIVATE cxx_std_17)

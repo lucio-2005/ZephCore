@@ -19,6 +19,7 @@
         <color name="kind_rpt"     value="0xf5a524"/>
         <color name="kind_room"    value="0xa78bfa"/>
         <color name="kind_channel" value="0x60a5fa"/>
+        <color name="kind_sensor"  value="0xf472b6"/>
 
         <!-- Problems -->
         <color name="danger"     value="0xef4444"/>
@@ -193,6 +194,29 @@
         <string name="sum_device"    value="Buzzer on | LEDs on"/>
         <string name="sum_bluetooth" value="On | PIN 123456"/>
         <string name="sum_advanced"  value="1-byte path hash | single ACKs"/>
+
+        <!-- Contacts tab: 0 all, 1 companions, 2 repeaters, 3 rooms, 4 sensors -->
+        <int    name="contacts_filter" value="0"/>
+
+        <!-- Remote management -->
+        <string name="remote_name"         value="Monte Cavo"/>
+        <string name="remote_role"         value="Repeater | admin"/>
+        <string name="remote_pwd_txt"      value="not set"/>
+        <string name="remote_result_title" value="STATUS"/>
+        <string name="remote_state"        value="just now"/>
+        <string name="rs_state" value="Tap a value to change it."/>
+        <string name="rs_name"  value="Monte Cavo"/>
+        <string name="rs_lat"   value="41.746200"/>
+        <string name="rs_lon"   value="12.704100"/>
+        <string name="rs_radio" value="869.618,62.5,8,8"/>
+        <string name="rs_tx"    value="22"/>
+        <string name="rs_repeat" value="on"/>
+        <string name="rs_adv"   value="120"/>
+        <string name="rs_fadv"  value="12"/>
+        <string name="rs_owner" value="IW0ABC"/>
+        <string name="rs_guest" value=""/>
+        <string name="rs_admin" value="change"/>
+        <string name="sum_sensors" value="Battery 4.12 V | 3 readings"/>
 
         <!-- Edit panel -->
         <string name="edit_title" value="Name"/>

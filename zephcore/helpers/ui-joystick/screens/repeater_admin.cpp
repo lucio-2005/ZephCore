@@ -68,6 +68,7 @@ void RepeaterAdminScreen::onTimeout()
 	if (_state == STATE_LOGGING_IN) {
 		_awaiting_tx = false;
 		_state = STATE_PASSWORD_ENTRY;
+		_task->clearLoginPending();
 		_task->showAlert("Login timeout", 1500);
 	} else if ((_state == STATE_SUBMENU || _state == STATE_MAIN || _state == STATE_CMD_INPUT) &&
 			   _pending != PENDING_NONE) {
@@ -610,6 +611,7 @@ bool RepeaterAdminScreen::handlePasswordKey(char c)
 			uint32_t est_timeout = 0;
 			int result = mesh->sendLogin(*contact, _password, est_timeout);
 			if (result != MSG_SEND_FAILED) {
+				_task->registerLoginPending(contact->id.pub_key);
 				ui_signal_tx();
 				_state = STATE_LOGGING_IN;
 				_last_sent_at = k_uptime_get_32();
@@ -866,6 +868,7 @@ bool RepeaterAdminScreen::handleInput(char c)
 		if (c == KEY_CANCEL || c == KEY_HOME) {
 			_awaiting_tx = false;
 			_state = STATE_PASSWORD_ENTRY;
+			_task->clearLoginPending();
 			return true;
 		}
 		return false;

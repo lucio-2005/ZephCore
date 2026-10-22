@@ -110,8 +110,7 @@ static struct ui_settings cur;
 static bool loading;
 static bool radio_dirty;	/* radio screen has unsaved changes */
 static uint32_t radio_freq_khz;	/* staged frequency */
-static lv_obj_t *edit_panel;
-static const struct edit_spec *edit_cur;
+static const char *edit_key;	/* the setting the edit panel is open for */
 static int confirm_what;
 static int64_t confirm_until;
 
@@ -618,6 +617,10 @@ void ui_on_settings_open(lv_event_t *e)
 		/* Leaving the radio screen without Save drops its changes. */
 		radio_dirty = false;
 	}
+	if (which && strcmp(which, "menu") == 0) {
+		/* Back on the home screen: the Contacts tab may be stale too. */
+		ui_lvgl_contacts_refresh(false);
+	}
 	if (which && strcmp(which, "radio") == 0) {
 		lv_obj_t *slider = lv_obj_find_by_name(scr, "radio_txp");
 
@@ -682,20 +685,12 @@ void ui_on_factory_reset(lv_event_t *e)
 	confirm_then(2, "Tap Factory reset again to erase everything", ui_settings_factory_reset);
 }
 
-/* ========== Edit panel ========== */
+/* ========== Text and number settings ========== */
 
-static void edit_close(void)
+static bool settings_save(const char *txt, const char **err)
 {
-	if (edit_panel) {
-		/* Called from events of the panel's own children. */
-		lv_obj_delete_async(edit_panel);
-		edit_panel = NULL;
-	}
-	edit_cur = NULL;
-}
+	const char *key = edit_key;
 
-static bool edit_apply(const char *key, const char *txt, const char **err)
-{
 	char buf[16];
 	int64_t v;
 
@@ -765,53 +760,20 @@ static bool edit_apply(const char *key, const char *txt, const char **err)
 	return false;
 }
 
-static void edit_save(void)
+static bool settings_save_and_reload(const char *txt, const char **err)
 {
-	const char *err = NULL;
-
-	if (!edit_panel || !edit_cur) {
-		return;
+	if (!settings_save(txt, err)) {
+		return false;
 	}
-	lv_obj_t *ta = lv_obj_find_by_name(edit_panel, "edit_input");
-
-	if (!ta || !edit_apply(edit_cur->key, lv_textarea_get_text(ta), &err)) {
-		ui_lvgl_toast(true, err ? err : "Not saved");
-		return;
-	}
-	edit_close();
 	ui_lvgl_settings_load();
+	return true;
 }
 
-void ui_on_edit_save(lv_event_t *e)
+void ui_lvgl_settings_edit(const char *key)
 {
-	ARG_UNUSED(e);
-	edit_save();
-}
-
-void ui_on_edit_cancel(lv_event_t *e)
-{
-	ARG_UNUSED(e);
-	edit_close();
-}
-
-static void edit_kbd_event(lv_event_t *e)
-{
-	if (lv_event_get_code(e) == LV_EVENT_READY) {
-		edit_save();
-	} else {
-		edit_close();
-	}
-}
-
-void ui_on_edit(lv_event_t *e)
-{
-	const char *key = lv_event_get_user_data(e);
 	const struct edit_spec *spec = NULL;
 	char buf[40];
 
-	if (!key || edit_panel) {
-		return;
-	}
 	for (size_t i = 0; i < ARRAY_SIZE(edit_specs); i++) {
 		if (strcmp(edit_specs[i].key, key) == 0) {
 			spec = &edit_specs[i];
@@ -841,28 +803,15 @@ void ui_on_edit(lv_event_t *e)
 		snprintf(buf, sizeof(buf), "%s", lv_subject_get_string(mcui_set_airtime));
 	}
 
-	lv_subject_set_string(mcui_edit_title, spec->title);
-	lv_subject_set_string(mcui_edit_hint, spec->hint);
-	edit_cur = spec;
-	edit_panel = mcui_edit_panel_create(lv_layer_top());
-
-	lv_obj_t *ta = lv_obj_find_by_name(edit_panel, "edit_input");
-	lv_obj_t *kbd = lv_obj_find_by_name(edit_panel, "edit_kbd");
-
-	if (!ta || !kbd) {
-		edit_close();
-		return;
-	}
-	lv_textarea_set_max_length(ta, spec->max_len);
-	if (spec->number) {
-		lv_textarea_set_accepted_chars(ta, "0123456789.-");
-		lv_keyboard_set_mode(kbd, LV_KEYBOARD_MODE_NUMBER);
-	}
-	lv_textarea_set_text(ta, buf);
-	lv_keyboard_set_textarea(kbd, ta);
-	lv_obj_add_state(ta, LV_STATE_FOCUSED);
-	lv_obj_add_event_cb(kbd, edit_kbd_event, LV_EVENT_READY, NULL);
-	lv_obj_add_event_cb(kbd, edit_kbd_event, LV_EVENT_CANCEL, NULL);
+	edit_key = spec->key;
+	ui_lvgl_edit_open(&(struct ui_edit_req){
+		.title = spec->title,
+		.hint = spec->hint,
+		.initial = buf,
+		.number = spec->number,
+		.max_len = spec->max_len,
+		.save = settings_save_and_reload,
+	});
 }
 
 /* ========== Init ========== */

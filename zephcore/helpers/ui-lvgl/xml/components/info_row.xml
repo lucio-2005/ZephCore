@@ -1,0 +1,16 @@
+<!-- A label and a value, made at run time for remote and sensor readings. -->
+<component>
+    <api>
+        <prop name="label" type="string" default=""/>
+        <prop name="value" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+          style_pad_column="8">
+        <style name="style_plain"/>
+        <lv_label text="$label" flex_grow="1" height="18" long_mode="dots">
+            <style name="style_text_muted"/>
+        </lv_label>
+        <lv_label text="$value" style_max_width="65%" style_text_align="right"/>
+    </view>
+</component>

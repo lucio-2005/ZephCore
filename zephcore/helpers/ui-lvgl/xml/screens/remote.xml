@@ -1,0 +1,92 @@
+<!-- Remote management of a repeater, room server or sensor: log in, then ask
+     for its status, telemetry, neighbours or owner info, or (as admin) run
+     commands and change its settings. The device fills it for the contact
+     tapped in the Contacts tab (ui_on_remote_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_remote_open"/>
+
+        <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                style_pad_ver="4" style_pad_left="4">
+            <style name="style_statusbar"/>
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <screen_load_event trigger="clicked" screen="home" anim_type="move_right" duration="200"/>
+                <lv_label text="&lt; Back" style_text_font="font_small"/>
+            </lv_button>
+            <lv_obj flex_grow="1" height="content" flex_flow="column" scrollable="false" clickable="false">
+                <style name="style_plain"/>
+                <lv_label bind_text="remote_name" width="100%" height="20" long_mode="dots">
+                    <style name="style_title"/>
+                </lv_label>
+                <lv_label bind_text="remote_role" width="100%" height="15" long_mode="dots">
+                    <style name="style_text_muted"/>
+                </lv_label>
+            </lv_obj>
+        </lv_obj>
+
+        <!-- Buttons stay put; only the answer below them scrolls. -->
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollable="false" clickable="false">
+            <style name="style_page"/>
+
+            <lv_obj name="remote_login" width="100%" height="content" flex_flow="column" scrollable="false">
+                <style name="style_card"/>
+                <value_row label="Password" value="remote_pwd_txt" key="r.login"/>
+                <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+                        style_flex_cross_place="center">
+                    <style name="style_plain"/>
+                    <lv_label text="Empty password: guest access" flex_grow="1">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                    <lv_button width="content" height="content">
+                        <style name="style_btn"/>
+                        <style name="style_btn_accent"/>
+                        <style name="style_btn_accent_pressed" selector="pressed"/>
+                        <event_cb trigger="clicked" callback="ui_on_remote_login"/>
+                        <lv_label text="Log in" style_text_font="font_small"/>
+                    </lv_button>
+                </lv_obj>
+            </lv_obj>
+
+            <lv_obj name="remote_actions" width="100%" height="content" flex_flow="row_wrap" scrollable="false"
+                    clickable="false" style_pad_row="6" style_pad_column="6">
+                <style name="style_plain"/>
+                <action_btn name="act_status" text="Status" action="status"/>
+                <action_btn name="act_telemetry" text="Telemetry" action="telemetry"/>
+                <action_btn name="act_neighbours" text="Neighbours" action="neighbours"/>
+                <action_btn name="act_info" text="Owner info" action="info"/>
+                <action_btn name="act_chat" text="Open chat" action="chat"/>
+                <action_btn name="act_console" text="Console" action="console"/>
+                <action_btn name="act_settings" text="Settings" action="settings"/>
+                <action_btn name="act_clock" text="Sync clock" action="clock"/>
+                <action_btn name="act_advert" text="Send advert" action="advert"/>
+                <action_btn name="act_reboot" text="Reboot" action="reboot"/>
+            </lv_obj>
+
+            <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollable="false" clickable="false">
+                <style name="style_card"/>
+                <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" clickable="false">
+                    <style name="style_plain"/>
+                    <lv_label bind_text="remote_result_title" flex_grow="1">
+                        <style name="style_section"/>
+                    </lv_label>
+                    <lv_label bind_text="remote_state">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                </lv_obj>
+                <lv_obj name="remote_rows" width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto"
+                        style_pad_row="2">
+                    <style name="style_plain"/>
+                    <info_row label="Uptime" value="3d 4h"/>
+                    <info_row label="Battery" value="4.12 V"/>
+                    <info_row label="Noise floor" value="-118 dBm"/>
+                    <info_row label="Last RSSI / SNR" value="-91 dBm / 6.5 dB"/>
+                    <info_row label="Packets in / out" value="1000 / 500"/>
+                    <info_row label="Airtime TX / RX" value="1m 17s / 20m 34s"/>
+                </lv_obj>
+            </lv_obj>
+        </lv_obj>
+    </view>
+</screen>

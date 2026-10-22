@@ -2,6 +2,8 @@
 
 #include "mcui_gen.h"
 
+void ui_on_contact_open(lv_event_t * e);
+
 lv_obj_t * mcui_contact_row_create(lv_obj_t * parent, const char * name, const char * letter, const char * kind, lv_color_t tint, const char * heard, const char * hops, const char * snr)
 {
 	lv_obj_t * obj0 = lv_obj_create(parent);
@@ -11,6 +13,7 @@ lv_obj_t * mcui_contact_row_create(lv_obj_t * parent, const char * name, const c
 	lv_obj_set_scrollable(obj0, false);
 	lv_obj_add_style(obj0, &mcui_style_row, 0);
 	lv_obj_add_style(obj0, &mcui_style_row_pressed, LV_STATE_PRESSED);
+	lv_obj_add_event_cb(obj0, ui_on_contact_open, LV_EVENT_CLICKED, NULL);
 	mcui_avatar_create(obj0, letter, tint);
 	lv_obj_t * obj2 = lv_obj_create(obj0);
 	lv_obj_set_flex_grow(obj2, 1);

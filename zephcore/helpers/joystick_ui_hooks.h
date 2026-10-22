@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <zephyr/sys/util.h>
+#include <ui_remote_events.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,45 +21,11 @@ extern "C" {
 
 typedef void (*ui_signal_fn)(void);
 
-enum ui_joystick_event_type {
-	UI_JOYSTICK_LOGIN_RESULT   = 0,
-	UI_JOYSTICK_CLI_RESPONSE   = 1,
-	UI_JOYSTICK_REQ_RESPONSE   = 2,
-	UI_JOYSTICK_DISCOVER_RESP  = 3,
-};
-
-struct ui_joystick_login_data {
-	bool success;
-	uint8_t permissions;
-	uint32_t server_time;
-};
-
-struct ui_joystick_cli_data {
-	const char *text;
-};
-
-struct ui_joystick_req_response_data {
-	int8_t snr_local;
-	int8_t snr_remote;
-	const uint8_t *data;
-	uint8_t data_len;
-};
-
-struct ui_joystick_discover_data {
-	int8_t snr;
-	int8_t snr_remote;
-	uint8_t path_len;
-};
-
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
 
 void joystick_ui_hooks_register(void *task,
 	ui_signal_fn signal_refresh,
 	ui_signal_fn signal_tx);
-
-void ui_notify_joystick_event(enum ui_joystick_event_type type,
-	const uint8_t *pub_key_prefix,
-	const void *payload);
 
 void ui_notify_radio_stats(uint32_t pkt_recv, uint32_t pkt_sent, uint32_t pkt_errors);
 
@@ -74,15 +41,6 @@ static inline void joystick_ui_hooks_register(void *task,
 	ARG_UNUSED(task);
 	ARG_UNUSED(signal_refresh);
 	ARG_UNUSED(signal_tx);
-}
-
-static inline void ui_notify_joystick_event(enum ui_joystick_event_type type,
-	const uint8_t *pub_key_prefix,
-	const void *payload)
-{
-	ARG_UNUSED(type);
-	ARG_UNUSED(pub_key_prefix);
-	ARG_UNUSED(payload);
 }
 
 static inline void ui_notify_radio_stats(uint32_t pkt_recv, uint32_t pkt_sent,

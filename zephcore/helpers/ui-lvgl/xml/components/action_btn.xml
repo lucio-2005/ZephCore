@@ -1,0 +1,14 @@
+<!-- A remote management action: three to a row. user_data names the action. -->
+<component>
+    <api>
+        <prop name="text" type="string" default=""/>
+        <prop name="action" type="string" default="status"/>
+    </api>
+
+    <view extends="lv_button" width="31%" height="28">
+        <style name="style_btn"/>
+        <style name="style_btn_pressed" selector="pressed"/>
+        <event_cb trigger="clicked" callback="ui_on_remote_action" user_data="$action"/>
+        <lv_label text="$text" align="center" style_text_font="font_small"/>
+    </view>
+</component>

@@ -213,6 +213,9 @@ public:
 	bool sendContactPingZeroHop(const ContactInfo &contact, uint32_t &est_timeout);
 	void registerAdminReqTag(uint32_t tag);
 	void clearAdminReqTag();
+	/* So CompanionMesh hands this login's result to the UI, not the app. */
+	void registerLoginPending(const uint8_t *pub_key);
+	void clearLoginPending();
 	void notifyPacketSent();
 
 	/* Key event enqueue (called from input callback, ISR/input thread) */

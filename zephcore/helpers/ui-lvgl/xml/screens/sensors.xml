@@ -1,0 +1,26 @@
+<!-- This node's own readings: battery, MCU temperature, GPS and any
+     environment sensors, as the app's telemetry shows them. -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_sensors_open"/>
+        <sub_header title="Sensors">
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_pressed" selector="pressed"/>
+                <event_cb trigger="clicked" callback="ui_on_sensors_refresh"/>
+                <lv_label text="Refresh" style_text_font="font_small"/>
+            </lv_button>
+        </sub_header>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <lv_obj name="sensor_rows" width="100%" height="content" flex_flow="column" scrollable="false"
+                    clickable="false" style_pad_row="4">
+                <style name="style_card"/>
+                <info_row label="Battery" value="4.12 V"/>
+                <info_row label="Temperature" value="31.5 C"/>
+                <info_row label="Position" value="41.90280, 12.49640"/>
+            </lv_obj>
+        </lv_obj>
+    </view>
+</screen>

@@ -62,6 +62,7 @@ LOG_MODULE_REGISTER(zephcore_main, CONFIG_ZEPHCORE_MAIN_LOG_LEVEL);
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
 #include <ui_lvgl.h>
 #include <ui_settings.h>
+#include <ui_remote.h>
 #endif
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_OUTBOX)
 #include <ui_outbox.h>
@@ -1219,6 +1220,7 @@ int main(void)
 #endif
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
 	ui_settings_init(&companion_mesh);
+	ui_remote_init(&companion_mesh, outbox_kick_tx);
 	ui_lvgl_register(lvgl_signal);
 #endif
 #endif
