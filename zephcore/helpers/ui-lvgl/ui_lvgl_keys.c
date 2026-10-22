@@ -10,7 +10,7 @@
  *   up / down       previous / next item; held: first / last item
  *   centre          select; held: home screen
  *   left            back (or adjust the focused slider, keyboard, map)
- *   right           open (or adjust)
+ *   right           nothing (or adjust the slider, keyboard, text field, map)
  *   back / user btn back; 2-5 taps: LEDs, buzzer, GPS, flood advert
  *   typed keys      into the text field (keypad boards)
  *
@@ -510,10 +510,9 @@ static uint32_t translate(struct raw_key r)
 			switch_tab(f, right ? 1 : -1);
 			return 0;
 		}
-		if (right) {
-			return LV_KEY_ENTER;
+		if (!right) {
+			go_back();
 		}
-		go_back();
 		return 0;
 	}
 	case INPUT_KEY_ENTER:
