@@ -19,11 +19,13 @@
 #endif
 #include <adapters/gps/ZephyrGPSManager.h>
 #include <helpers/time_sync.h>
-#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_BUTTON) || IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_BUTTON) || IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK) || \
+	IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
 #include <ui_task.h>
 #define ZEPHCORE_HAS_UI_TASK 1
 #endif
 #include <joystick_ui_hooks.h>
+#include <ui_outbox.h>
 #include <helpers/PacketLog.h>
 LOG_MODULE_REGISTER(zephcore_companion, CONFIG_ZEPHCORE_MAIN_LOG_LEVEL);
 
@@ -780,7 +782,7 @@ ContactInfo *CompanionMesh::processAck(const uint8_t *data)
 	}
 	{
 		uint8_t recipient_pubkey[6];
-		if (ui_joystick_try_match_ack(ack_crc, recipient_pubkey)) {
+		if (ui_outbox_try_match_ack(ack_crc, recipient_pubkey)) {
 			return lookupContactByPubKey(recipient_pubkey, 6);
 		}
 	}

@@ -62,6 +62,9 @@ LOG_MODULE_REGISTER(zephcore_main, CONFIG_ZEPHCORE_MAIN_LOG_LEVEL);
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
 #include <ui_lvgl.h>
 #endif
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_OUTBOX)
+#include <ui_outbox.h>
+#endif
 
 /* Radio + mesh includes (shared header selects LR1110 or SX126x) */
 #include <src/RadioIncludes.h>
@@ -142,6 +145,13 @@ static void joystick_signal_refresh(void)
 }
 
 static void joystick_signal_tx(void)
+{
+	k_event_post(&mesh_events, MESH_EVENT_TX_DRAIN);
+}
+#endif
+
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_OUTBOX)
+static void outbox_kick_tx(void)
 {
 	k_event_post(&mesh_events, MESH_EVENT_TX_DRAIN);
 }
@@ -1200,6 +1210,9 @@ int main(void)
 			     &companion_mesh, &data_store,
 			     &lora_radio, &zephyr_board, &rtc_clock);
 
+#if IS_ENABLED(CONFIG_ZEPHCORE_UI_OUTBOX)
+	ui_outbox_init(&companion_mesh, &rtc_clock, outbox_kick_tx);
+#endif
 #if IS_ENABLED(CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
 	joystick_ui_task.begin(&companion_mesh, &rtc_clock, &companion_mesh.prefs);
 #endif

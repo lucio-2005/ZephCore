@@ -298,66 +298,15 @@ private:
 	uint8_t _pending_ping_pubkey[4];
 	uint32_t _pending_ping_sent_ms;
 
-	/* Outgoing DM tracking — retries on missing ACK, then forces flood as
-	 * a last-ditch attempt, then marks failed. The BLE-app mirror is
-	 * deferred until the outcome is known so the phone sees the message
-	 * exactly once with a delivery indicator in the body prefix. */
-	static const int MAX_PENDING_SENDS = 4;
-	static const uint8_t MAX_SEND_ATTEMPTS = 5;  /* attempt 4 (0-indexed) forces flood */
-	struct PendingSend {
-		JoystickUITask *task;        /* back-pointer for ISR dispatch */
-		bool active;
-		volatile bool retry_due;     /* set by timer ISR, consumed in loop() */
-		bool delivered;
-		bool failed;
-		uint8_t recipient_pubkey[PUB_KEY_SIZE];
-		char recipient_name[32];
-		uint32_t expected_ack;
-		uint32_t timestamp;
-		char text[MAX_TEXT_LEN + 1];
-		uint8_t attempt;
-		uint32_t timeout_ms;
-		struct k_timer retry_timer;
-	};
-	PendingSend _pending_sends[MAX_PENDING_SENDS];
-	static void pendingRetryTimerCb(struct k_timer *t);
-	int allocPendingSendSlot();
-	void schedulePendingRetry(int slot_idx);
-	void doPendingSend(int slot_idx);
-	void completePendingSend(int slot_idx);
-	void processPendingRetries();
-
-	/* Channel-send feedback: after broadcasting a group message we wait
-	 * CHANNEL_FEEDBACK_WINDOW_MS to see if any neighbor repeated our flood
-	 * (queried via ContentionTracker::extractDupeCount). Outcome decides
-	 * the body prefix in the BLE-app mirror and the path_len indicator in
-	 * the local _ch_previews entry. */
-	static const int MAX_PENDING_CHANNEL_SENDS = 4;
-	static constexpr uint32_t CHANNEL_FEEDBACK_WINDOW_MS = 5000;
-	struct PendingChannelSend {
-		JoystickUITask *task;
-		bool active;
-		volatile bool feedback_due;
-		uint8_t channel_idx;
-		int preview_index;          /* index in _ch_previews ring to update */
-		uint32_t preview_timestamp; /* extra match guard if ring wrapped */
-		uint32_t timestamp;
-		uint32_t hash;
-		char text[MAX_TEXT_LEN + 1];
-		struct k_timer feedback_timer;
-	};
-	PendingChannelSend _pending_channel_sends[MAX_PENDING_CHANNEL_SENDS];
-	static void pendingChannelFeedbackCb(struct k_timer *t);
-	int allocPendingChannelSlot();
-	void processPendingChannelFeedback();
-	void completePendingChannelSend(int slot_idx, bool heard);
+	/* Outgoing messages: retries, channel feedback and the app mirror live in
+	 * helpers/ui/ui_outbox; these keep the on-device history in step. */
+	static JoystickUITask *s_outbox_owner;
+	static void outboxWake(void);
+	static void outboxDmDone(uint32_t timestamp, const char *recipient_name, bool delivered);
+	static void outboxChannelDone(int preview_index, uint32_t timestamp, bool heard);
 public:
 	/* Initiate a DM with retry tracking (called by sendComposedMessage). */
 	bool startPendingDM(ContactInfo &recipient, uint32_t ts, const char *text);
-	/* Try to match an arriving ACK to a pending send.
-	 * Returns the recipient ContactInfo* if matched (so BaseChatMesh can do
-	 * its return-path-retry housekeeping), nullptr otherwise. */
-	ContactInfo *tryMatchPendingAck(uint32_t ack);
 	/* Initiate a channel send with feedback tracking. Returns true on
 	 * successful broadcast; the body of the message is stored locally as
 	 * "pending" until the feedback window expires. */

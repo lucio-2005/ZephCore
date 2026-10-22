@@ -780,6 +780,10 @@ if(CONFIG_ZEPHCORE_UI_DISPLAY AND CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK)
   )
 endif()
 
+if(CONFIG_ZEPHCORE_UI_OUTBOX)
+  target_sources(app PRIVATE helpers/ui/ui_outbox.cpp)
+endif()
+
 if(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
   file(GLOB _ui_lvgl_generated CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/helpers/ui-lvgl/generated/*.c

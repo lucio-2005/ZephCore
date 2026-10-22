@@ -390,7 +390,12 @@ public:
 	void clearJoystickPingTag()            { _pending_joystick_ping_tag = 0; }
 	void setJoystickAdminTag(uint32_t tag) { _pending_joystick_admin_tag = tag; }
 	void clearJoystickAdminTag()           { _pending_joystick_admin_tag = 0; }
-	/* The joystick UI clears a stale out_path_len on its fallback flood. */
+private:
+#endif
+
+#ifdef CONFIG_ZEPHCORE_UI_OUTBOX
+public:
+	/* ui_outbox clears a stale out_path_len on its fallback flood. */
 	void markContactsDirtyPublic() { markContactsDirty(); }
 private:
 #endif

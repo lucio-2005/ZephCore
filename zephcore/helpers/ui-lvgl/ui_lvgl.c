@@ -36,6 +36,7 @@
 
 #include "ui_task.h"
 #include "ui_mesh_actions.h"
+#include "ui_outbox.h"
 #include "ui_lvgl.h"
 #include "mcui_gen.h"
 
@@ -71,10 +72,22 @@ enum {
 	D_COUNT = BIT(8), D_ALERTS = BIT(9), D_BANNER = BIT(10),
 };
 
+/* Outgoing message state, from ui_outbox. */
+enum msg_status {
+	MSG_RECEIVED = 0,
+	MSG_SENDING,
+	MSG_DELIVERED,
+	MSG_NOT_DELIVERED,
+	MSG_HEARD,
+	MSG_NOT_HEARD,
+};
+
 struct ui_msg {
 	uint32_t seq;
 	uint32_t epoch;
+	uint32_t out_id;	/* outgoing: matches channel_done's cookie */
 	uint8_t path_len;
+	uint8_t status;
 	bool channel;
 	char conv[NAME_LEN];
 	char from[NAME_LEN];
@@ -153,7 +166,9 @@ struct conv_read {
 static struct conv_read conv_reads[CONV_MAX];
 static lv_obj_t *conv_screen;
 static char conv_name[NAME_LEN];
+static bool conv_is_channel;
 static uint32_t conv_shown_seq;
+static int out_id_next;
 static lv_obj_t *alerts_screen;
 static lv_timer_t *toast_timer;
 
@@ -407,9 +422,21 @@ static int msgs_in_order(const struct ui_model *m, const struct ui_msg **out)
 
 static void add_bubble(lv_obj_t *list, const struct ui_msg *msg)
 {
-	char when[8], hops[16], meta[32];
+	static const char *const status_txt[] = {
+		[MSG_SENDING] = "sending...",
+		[MSG_DELIVERED] = "delivered",
+		[MSG_NOT_DELIVERED] = "not delivered",
+		[MSG_HEARD] = "heard by a repeater",
+		[MSG_NOT_HEARD] = "not heard",
+	};
+	char when[8], hops[16], meta[40];
 
 	fmt_hm(when, sizeof(when), msg->epoch, view.tz);
+	if (msg->status != MSG_RECEIVED) {
+		snprintf(meta, sizeof(meta), "%s%s%s", when, when[0] ? " | " : "", status_txt[msg->status]);
+		mcui_msg_out_create(list, msg->text, meta);
+		return;
+	}
 	fmt_hops(hops, sizeof(hops), msg->path_len);
 	snprintf(meta, sizeof(meta), "%s%s%s", when, when[0] ? " | " : "", hops);
 	mcui_msg_in_create(list, msg->from, msg->text, meta);
@@ -448,7 +475,8 @@ static void rebuild_chats(void)
 		unsigned unread = 0;
 
 		for (int j = 0; j < n; j++) {
-			if (order[j]->seq > read_seq && strcmp(order[j]->conv, last->conv) == 0) {
+			if (order[j]->seq > read_seq && order[j]->status == MSG_RECEIVED &&
+			    strcmp(order[j]->conv, last->conv) == 0) {
 				unread++;
 			}
 		}
@@ -460,7 +488,10 @@ static void rebuild_chats(void)
 			letter[0] = (char)(letter[0] - 'a' + 'A');
 		}
 		fmt_hm(when, sizeof(when), last->epoch, view.tz);
-		if (last->channel) {
+		if (last->status != MSG_RECEIVED) {
+			copy_str(path, sizeof(path), last->channel ? "Channel" : "Direct");
+			snprintf(preview, sizeof(preview), "You: %s", last->text);
+		} else if (last->channel) {
 			copy_str(path, sizeof(path), "Channel");
 			snprintf(preview, sizeof(preview), "%s: %s", last->from, last->text);
 		} else {
@@ -485,7 +516,8 @@ static void rebuild_chats(void)
 	}
 }
 
-static void conv_append_new(void)
+/* Redraw the open conversation; outcome changes restyle earlier bubbles. */
+static void conv_refresh(void)
 {
 	lv_obj_t *list;
 	const struct ui_msg *order[MSG_MAX];
@@ -498,14 +530,16 @@ static void conv_append_new(void)
 	if (!list) {
 		return;
 	}
+	lv_obj_clean(list);
 	n = msgs_in_order(&view, order);
 	for (int i = 0; i < n; i++) {
-		if (order[i]->seq > conv_shown_seq && strcmp(order[i]->conv, conv_name) == 0) {
+		if (strcmp(order[i]->conv, conv_name) == 0) {
 			add_bubble(list, order[i]);
 			conv_shown_seq = order[i]->seq;
 		}
 	}
 	conv_read_get(conv_name, true)->read_seq = view.msg_seq;
+	lv_obj_update_layout(list);
 	lv_obj_scroll_to_y(list, LV_COORD_MAX, LV_ANIM_OFF);
 }
 
@@ -530,26 +564,59 @@ void ui_on_conversation_open(lv_event_t *e)
 	}
 	copy_str(conv_name, sizeof(conv_name), lv_subject_get_string(mcui_chat_title));
 	conv_shown_seq = 0;
+	conv_is_channel = false;
+	for (int i = 0; i < MSG_MAX; i++) {
+		if (view.msgs[i].seq && strcmp(view.msgs[i].conv, conv_name) == 0) {
+			conv_is_channel = view.msgs[i].channel;
+			break;
+		}
+	}
+	if (ta) {
+		lv_textarea_set_max_length(ta, TEXT_LEN - 1);
+	}
 	if (kbd && ta) {
 		lv_keyboard_set_textarea(kbd, ta);
 	}
-	if (list) {
-		lv_obj_clean(list);
-	}
-	conv_append_new();
+	ARG_UNUSED(list);
+	conv_refresh();
 }
+
+static bool radio_usable(const char *what);
+static void add_outgoing(const char *conv, const char *text, uint32_t ts, int out_id, bool channel);
 
 void ui_on_send(lv_event_t *e)
 {
 	lv_obj_t *ta = conv_screen ? lv_obj_find_by_name(conv_screen, "msg_input") : NULL;
+	const char *text = ta ? lv_textarea_get_text(ta) : NULL;
+	enum ui_send_result r;
+	uint32_t ts = 0;
+	int id = ++out_id_next;
 
 	ARG_UNUSED(e);
-	if (!ta || lv_textarea_get_text(ta)[0] == '\0') {
+	if (!text || text[0] == '\0' || !radio_usable("Message")) {
 		return;
 	}
-	/* Sending needs the pending-DM / channel feedback path (ACK tracking,
-	 * retries, mirroring to the companion app) that the joystick UI owns. */
-	toast(ALERT_ERR, "Not sent: sending from here isn't available yet");
+	if (conv_is_channel) {
+		r = ui_outbox_send_channel_to(conv_name, text, id, &ts);
+	} else {
+		r = ui_outbox_send_dm_to(conv_name, text, &ts);
+	}
+	switch (r) {
+	case UI_SEND_OK:
+		add_outgoing(conv_name, text, ts, id, conv_is_channel);
+		lv_textarea_set_text(ta, "");
+		break;
+	case UI_SEND_QUEUE_FULL:
+		toast(ALERT_ERR, "Not sent: still waiting on earlier messages");
+		break;
+	case UI_SEND_NO_RECIPIENT:
+		toast(ALERT_ERR, conv_is_channel ? "Not sent: this channel isn't set up on the node"
+						 : "Not sent: no contact with this name on the node");
+		break;
+	default:
+		toast(ALERT_ERR, "Not sent: the mesh refused the message");
+		break;
+	}
 }
 
 /* ========== Advert buttons ========== */
@@ -797,7 +864,7 @@ static void apply_model(uint32_t bits)
 	}
 	if (bits & D_MSGS) {
 		rebuild_chats();
-		conv_append_new();
+		conv_refresh();
 	}
 	if (bits & D_ALERTS) {
 		int unseen = 0;
@@ -857,9 +924,19 @@ static void demo_fill(void)
 }
 #endif
 
+static void outbox_dm_done(uint32_t timestamp, const char *recipient_name, bool delivered);
+static void outbox_channel_done(int cookie, uint32_t timestamp, bool heard);
+
 void ui_lvgl_register(void (*signal)(void))
 {
+	static const struct ui_outbox_hooks outbox_hooks = {
+		.wake = wake,
+		.dm_done = outbox_dm_done,
+		.channel_done = outbox_channel_done,
+	};
+
 	signal_fn = signal;
+	ui_outbox_set_hooks(&outbox_hooks);
 #ifdef CONFIG_ZEPHCORE_UI_LVGL_DEMO_DATA
 	demo_fill();
 #endif
@@ -876,6 +953,8 @@ void ui_lvgl_run(void)
 	if (!initialized) {
 		return;
 	}
+
+	ui_outbox_process();
 
 	if (atomic_clear(&input_seen)) {
 		last_input_ms = now;
@@ -976,6 +1055,8 @@ static void add_msg(const char *conv, const char *from, const char *text, uint32
 
 		m->seq = ++model.msg_seq;
 		m->epoch = epoch ? epoch : model_now_epoch(&model);
+		m->out_id = 0;
+		m->status = MSG_RECEIVED;
 		m->path_len = path_len;
 		m->channel = channel;
 		copy_str(m->conv, sizeof(m->conv), conv);
@@ -983,6 +1064,52 @@ static void add_msg(const char *conv, const char *from, const char *text, uint32
 		copy_str(m->text, sizeof(m->text), text);
 	}
 	mark(D_MSGS);
+}
+
+static void add_outgoing(const char *conv, const char *text, uint32_t ts, int out_id, bool channel)
+{
+	K_SPINLOCK(&model_lock) {
+		struct ui_msg *m = &model.msgs[model.msg_seq % MSG_MAX];
+
+		m->seq = ++model.msg_seq;
+		m->epoch = ts;
+		m->out_id = (uint32_t)out_id;
+		m->path_len = 0;
+		m->status = MSG_SENDING;
+		m->channel = channel;
+		copy_str(m->conv, sizeof(m->conv), conv);
+		copy_str(m->from, sizeof(m->from), "You");
+		copy_str(m->text, sizeof(m->text), text);
+	}
+	mark(D_MSGS);
+}
+
+static void set_outcome(bool channel, int cookie, const char *conv, uint32_t ts, uint8_t status)
+{
+	K_SPINLOCK(&model_lock) {
+		for (int i = 0; i < MSG_MAX; i++) {
+			struct ui_msg *m = &model.msgs[i];
+
+			if (m->status != MSG_SENDING || m->channel != channel || m->epoch != ts) {
+				continue;
+			}
+			if (channel ? m->out_id == (uint32_t)cookie : strcmp(m->conv, conv) == 0) {
+				m->status = status;
+				break;
+			}
+		}
+	}
+	mark(D_MSGS);
+}
+
+static void outbox_dm_done(uint32_t timestamp, const char *recipient_name, bool delivered)
+{
+	set_outcome(false, 0, recipient_name, timestamp, delivered ? MSG_DELIVERED : MSG_NOT_DELIVERED);
+}
+
+static void outbox_channel_done(int cookie, uint32_t timestamp, bool heard)
+{
+	set_outcome(true, cookie, NULL, timestamp, heard ? MSG_HEARD : MSG_NOT_HEARD);
 }
 
 void ui_notify_contact_msg(uint8_t path_len, const char *from_name, const char *text,

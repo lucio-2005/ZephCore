@@ -65,8 +65,6 @@ void ui_notify_radio_stats(uint32_t pkt_recv, uint32_t pkt_sent, uint32_t pkt_er
 void ui_signal_refresh(void);
 void ui_signal_tx(void);
 
-bool ui_joystick_try_match_ack(uint32_t ack, uint8_t out_pubkey[6]);
-
 #else
 
 static inline void joystick_ui_hooks_register(void *task,
@@ -97,13 +95,6 @@ static inline void ui_notify_radio_stats(uint32_t pkt_recv, uint32_t pkt_sent,
 
 static inline void ui_signal_refresh(void) {}
 static inline void ui_signal_tx(void) {}
-
-static inline bool ui_joystick_try_match_ack(uint32_t ack, uint8_t out_pubkey[6])
-{
-	ARG_UNUSED(ack);
-	ARG_UNUSED(out_pubkey);
-	return false;
-}
 
 #endif /* CONFIG_ZEPHCORE_UI_DESIGN_JOYSTICK */
 

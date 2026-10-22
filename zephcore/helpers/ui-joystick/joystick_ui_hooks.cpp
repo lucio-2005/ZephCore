@@ -231,15 +231,6 @@ extern "C" void ui_notify_radio_stats(uint32_t pkt_recv, uint32_t pkt_sent, uint
 	}
 }
 
-extern "C" bool ui_joystick_try_match_ack(uint32_t ack, uint8_t out_pubkey[6])
-{
-	if (!s_task) return false;
-	ContactInfo *c = s_task->tryMatchPendingAck(ack);
-	if (!c) return false;
-	memcpy(out_pubkey, c->id.pub_key, 6);
-	return true;
-}
-
 extern "C" void ui_set_battery(uint16_t mv, uint8_t pct)
 {
 	if (s_task) {

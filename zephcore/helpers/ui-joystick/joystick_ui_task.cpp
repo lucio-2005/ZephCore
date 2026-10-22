@@ -14,6 +14,7 @@
 #include <helpers/buzzer_gate.h>
 #include <helpers/ui/ui_mesh_actions.h>
 #include <helpers/ui/ui_task.h>
+#include <helpers/ui/ui_outbox.h>
 #include <helpers/AdvertDataHelpers.h>
 #include <CompanionMesh.h>
 #include <mesh/Utils.h>
@@ -83,236 +84,82 @@ void JoystickUITask::onDisplayStateChanged()
 	_was_display_on = is_on;
 }
 
-/* ===== Outgoing DM tracking ===== */
+/* ===== Outgoing messages (helpers/ui/ui_outbox) ===== */
 
-void JoystickUITask::pendingRetryTimerCb(struct k_timer *t)
+JoystickUITask *JoystickUITask::s_outbox_owner = nullptr;
+
+void JoystickUITask::outboxWake(void)
 {
-	/* ISR — mark slot ready for retry, wake main loop. */
-	PendingSend *slot = (PendingSend *)k_timer_user_data_get(t);
-	if (!slot || !slot->task) return;
-	slot->retry_due = true;
+	/* Timer ISR: wake the main loop, which runs ui_outbox_process(). */
 	if (s_signal_fn) s_signal_fn();
 }
 
-int JoystickUITask::allocPendingSendSlot()
+void JoystickUITask::outboxDmDone(uint32_t timestamp, const char *recipient_name, bool delivered)
 {
-	for (int i = 0; i < MAX_PENDING_SENDS; i++) {
-		if (!_pending_sends[i].active) return i;
-	}
-	return -1;
-}
-
-void JoystickUITask::doPendingSend(int slot_idx)
-{
-	PendingSend &s = _pending_sends[slot_idx];
-	ContactInfo *recipient = _mesh ? _mesh->lookupContactByPubKey(s.recipient_pubkey, PUB_KEY_SIZE) : nullptr;
-	if (!recipient) {
-		s.failed = true;
-		completePendingSend(slot_idx);
-		return;
-	}
-
-	/* Attempt 4 (5th, 0-indexed) — clear the saved path so this send forces
-	 * flood. The clear persists so future DMs to this contact also re-discover. */
-	if (s.attempt == MAX_SEND_ATTEMPTS - 1) {
-		recipient->out_path_len = OUT_PATH_UNKNOWN;
-		if (CompanionMesh *cm = static_cast<CompanionMesh *>(_mesh)) {
-			cm->markContactsDirtyPublic();
-		}
-	}
-
-	uint32_t expected_ack = 0, est_timeout = 0;
-	int result = _mesh->sendMessage(*recipient, s.timestamp, s.attempt, s.text,
-									expected_ack, est_timeout);
-	if (result == 0) {
-		/* sendMessage rejected (e.g. queue full) — back off and try again. */
-		s.timeout_ms = 3000;
-		schedulePendingRetry(slot_idx);
-		return;
-	}
-	ui_signal_tx();
-	s.expected_ack = expected_ack;
-	/* Allow the ACK round-trip (2× est_timeout + small grace) before retrying. */
-	s.timeout_ms = (est_timeout > 0) ? (est_timeout * 2 + 3000) : 8000;
-	schedulePendingRetry(slot_idx);
-}
-
-void JoystickUITask::schedulePendingRetry(int slot_idx)
-{
-	PendingSend &s = _pending_sends[slot_idx];
-	k_timer_stop(&s.retry_timer);
-	k_timer_start(&s.retry_timer, K_MSEC(s.timeout_ms), K_NO_WAIT);
-}
-
-void JoystickUITask::completePendingSend(int slot_idx)
-{
-	PendingSend &s = _pending_sends[slot_idx];
-	k_timer_stop(&s.retry_timer);
-	bool delivered = s.delivered;
-
+	JoystickUITask *t = s_outbox_owner;
+	if (!t) return;
 	/* Update the on-device history entry (UnreadScreen) to reflect outcome. */
-	if (_unread) {
-		_unread->markSentEntryStatus(s.timestamp, s.recipient_name, delivered);
+	if (t->_unread) {
+		t->_unread->markSentEntryStatus(timestamp, recipient_name, delivered);
 	}
-
-	/* Now (and only now) mirror to the BLE app with the outcome prefix. */
-	ContactInfo *recipient = _mesh ? _mesh->lookupContactByPubKey(s.recipient_pubkey, PUB_KEY_SIZE) : nullptr;
-	if (recipient) {
-		if (CompanionMesh *cm = static_cast<CompanionMesh *>(_mesh)) {
-			cm->queueLocalSentContactMessage(*recipient, s.timestamp, s.text, delivered);
-		}
-	}
-
-	s.active = false;
-	s.retry_due = false;
-	_next_refresh = 0;
+	t->_next_refresh = 0;
 }
 
-void JoystickUITask::processPendingRetries()
+void JoystickUITask::outboxChannelDone(int preview_index, uint32_t timestamp, bool heard)
 {
-	for (int i = 0; i < MAX_PENDING_SENDS; i++) {
-		PendingSend &s = _pending_sends[i];
-		if (!s.active || !s.retry_due) continue;
-		s.retry_due = false;
-		if (s.delivered) {
-			completePendingSend(i);
-			continue;
-		}
-		if (s.attempt + 1 >= MAX_SEND_ATTEMPTS) {
-			/* Out of retries. */
-			s.failed = true;
-			completePendingSend(i);
-			continue;
-		}
-		s.attempt++;
-		doPendingSend(i);
+	JoystickUITask *t = s_outbox_owner;
+	if (!t) return;
+	/* Update the local _ch_previews entry's path_len so the UI shows the
+	 * outcome ("sent+" / "sent?"). Match by stored ring index + timestamp
+	 * to defend against ring wrap-around. */
+	if (preview_index >= 0 && preview_index < JOYSTICK_OFFLINE_QUEUE_SIZE &&
+		t->_ch_previews[preview_index].timestamp == timestamp) {
+		t->_ch_previews[preview_index].path_len = heard ? OUT_PATH_SENT_HEARD : OUT_PATH_SENT_UNHEARD;
 	}
+	t->_next_refresh = 0;
 }
 
 bool JoystickUITask::startPendingDM(ContactInfo &recipient, uint32_t ts, const char *text)
 {
 	if (!text || !_mesh) return false;
-	int slot_idx = allocPendingSendSlot();
-	if (slot_idx < 0) {
+	if (!ui_outbox_has_free_dm_slot()) {
 		showAlert("Send queue full", 1500);
 		return false;
 	}
 
-	PendingSend &s = _pending_sends[slot_idx];
-	s.active = true;
-	s.retry_due = false;
-	s.delivered = false;
-	s.failed = false;
-	memcpy(s.recipient_pubkey, recipient.id.pub_key, PUB_KEY_SIZE);
-	strncpy(s.recipient_name, recipient.name, sizeof(s.recipient_name) - 1);
-	s.recipient_name[sizeof(s.recipient_name) - 1] = '\0';
-	s.timestamp = ts;
-	size_t tlen = strlen(text);
-	if (tlen > MAX_TEXT_LEN) tlen = MAX_TEXT_LEN;
-	memcpy(s.text, text, tlen);
-	s.text[tlen] = '\0';
-	s.attempt = 0;
-	s.expected_ack = 0;
-	s.timeout_ms = 0;
-
 	/* Local history entry now (with pending marker — addPreview uses
 	 * OUT_PATH_SENT which becomes "(>>) ContactName:"; markSentEntryStatus()
-	 * rewrites the marker on outcome). */
+	 * rewrites the marker on outcome). Same truncation as the outbox. */
+	char name[32];
+	char body[MAX_TEXT_LEN + 1];
+	strncpy(name, recipient.name, sizeof(name) - 1);
+	name[sizeof(name) - 1] = '\0';
+	size_t tlen = strlen(text);
+	if (tlen > MAX_TEXT_LEN) tlen = MAX_TEXT_LEN;
+	memcpy(body, text, tlen);
+	body[tlen] = '\0';
 	if (_unread) {
-		_unread->addPreview(OUT_PATH_SENT, s.recipient_name, s.text, /*initially_read=*/true);
+		_unread->addPreview(OUT_PATH_SENT, name, body, /*initially_read=*/true);
 	}
 
-	doPendingSend(slot_idx);
-	return true;
-}
-
-ContactInfo *JoystickUITask::tryMatchPendingAck(uint32_t ack)
-{
-	if (ack == 0) return nullptr;
-	for (int i = 0; i < MAX_PENDING_SENDS; i++) {
-		PendingSend &s = _pending_sends[i];
-		if (!s.active || s.expected_ack != ack) continue;
-		s.delivered = true;
-		ContactInfo *recipient = _mesh ? _mesh->lookupContactByPubKey(s.recipient_pubkey, PUB_KEY_SIZE) : nullptr;
-		completePendingSend(i);
-		return recipient;
-	}
-	return nullptr;
-}
-
-/* ===== Channel-send feedback ===== */
-
-void JoystickUITask::pendingChannelFeedbackCb(struct k_timer *t)
-{
-	PendingChannelSend *slot = (PendingChannelSend *)k_timer_user_data_get(t);
-	if (!slot || !slot->task) return;
-	slot->feedback_due = true;
-	if (s_signal_fn) s_signal_fn();
-}
-
-int JoystickUITask::allocPendingChannelSlot()
-{
-	for (int i = 0; i < MAX_PENDING_CHANNEL_SENDS; i++) {
-		if (!_pending_channel_sends[i].active) return i;
-	}
-	return -1;
-}
-
-void JoystickUITask::completePendingChannelSend(int slot_idx, bool heard)
-{
-	PendingChannelSend &s = _pending_channel_sends[slot_idx];
-
-	/* Update the local _ch_previews entry's path_len so the UI shows the
-	 * outcome ("sent+" / "sent?"). Match by stored ring index + timestamp
-	 * to defend against ring wrap-around. */
-	if (s.preview_index >= 0 && s.preview_index < JOYSTICK_OFFLINE_QUEUE_SIZE &&
-		_ch_previews[s.preview_index].timestamp == s.preview_timestamp) {
-		_ch_previews[s.preview_index].path_len = heard ? OUT_PATH_SENT_HEARD : OUT_PATH_SENT_UNHEARD;
-	}
-
-	/* Mirror to BLE app now (deferred until outcome is known) with the
-	 * heard/unheard prefix. */
-	if (CompanionMesh *cm = static_cast<CompanionMesh *>(_mesh)) {
-		cm->queueLocalSentChannelMessage(s.channel_idx, s.timestamp, s.text, heard);
-	}
-
-	s.active = false;
-	s.feedback_due = false;
-	_next_refresh = 0;
-}
-
-void JoystickUITask::processPendingChannelFeedback()
-{
-	for (int i = 0; i < MAX_PENDING_CHANNEL_SENDS; i++) {
-		PendingChannelSend &s = _pending_channel_sends[i];
-		if (!s.active || !s.feedback_due) continue;
-		s.feedback_due = false;
-		int dupe_count = _mesh ? _mesh->getContentionTracker().extractDupeCount(s.hash) : -1;
-		bool heard = (dupe_count > 0);
-		completePendingChannelSend(i, heard);
-	}
+	return ui_outbox_start_dm(recipient, ts, body);
 }
 
 bool JoystickUITask::startPendingChannel(uint8_t channel_idx, ChannelDetails &ch,
 		uint32_t ts, const char *text)
 {
 	if (!text || !_mesh) return false;
-	int slot_idx = allocPendingChannelSlot();
-	if (slot_idx < 0) {
+	if (!ui_outbox_has_free_channel_slot()) {
 		showAlert("Channel queue full", 1500);
 		return false;
 	}
 
-	uint32_t pkt_hash = 0;
-	int text_len = (int)strlen(text);
-	bool ok = _mesh->sendGroupMessage(ts, ch.channel,
-			_prefs ? _prefs->node_name : "", text, text_len, &pkt_hash);
-	if (!ok) return false;
-	ui_signal_tx();
+	int preview_index = (_ch_preview_head + 1) % JOYSTICK_OFFLINE_QUEUE_SIZE;
+	if (!ui_outbox_start_channel(channel_idx, ch, ts, text, preview_index)) return false;
 
-	/* Local preview now (with "sent" path_len; we'll rewrite to
-	 * SENT_HEARD/SENT_UNHEARD on feedback). */
-	_ch_preview_head = (_ch_preview_head + 1) % JOYSTICK_OFFLINE_QUEUE_SIZE;
+	/* Local preview now (with "sent" path_len; outboxChannelDone() rewrites
+	 * it to SENT_HEARD/SENT_UNHEARD on feedback). */
+	_ch_preview_head = preview_index;
 	ChannelMsgPreview &p = _ch_previews[_ch_preview_head];
 	strncpy(p.channel, ch.name, sizeof(p.channel) - 1);
 	p.channel[sizeof(p.channel) - 1] = '\0';
@@ -321,22 +168,6 @@ bool JoystickUITask::startPendingChannel(uint8_t channel_idx, ChannelDetails &ch
 	p.timestamp = ts;
 	p.path_len = OUT_PATH_SENT;
 	if (_ch_preview_count < JOYSTICK_OFFLINE_QUEUE_SIZE) _ch_preview_count++;
-
-	PendingChannelSend &s = _pending_channel_sends[slot_idx];
-	s.active = true;
-	s.feedback_due = false;
-	s.channel_idx = channel_idx;
-	s.preview_index = _ch_preview_head;
-	s.preview_timestamp = ts;
-	s.timestamp = ts;
-	s.hash = pkt_hash;
-	size_t tl = (size_t)text_len;
-	if (tl > MAX_TEXT_LEN) tl = MAX_TEXT_LEN;
-	memcpy(s.text, text, tl);
-	s.text[tl] = '\0';
-
-	k_timer_stop(&s.feedback_timer);
-	k_timer_start(&s.feedback_timer, K_MSEC(CHANNEL_FEEDBACK_WINDOW_MS), K_NO_WAIT);
 	return true;
 }
 
@@ -555,24 +386,14 @@ void JoystickUITask::begin(BaseChatMesh *mesh, mesh::ZephyrRTCClock *rtc, NodePr
 	k_timer_user_data_set(&_lock_timer, this);
 	scheduleLockTimer();
 
-	/* Pending-DM retry timers — one per slot, one-shot, callback signals
-	 * refresh and sets the slot's retry_due flag for the main loop. */
-	for (int i = 0; i < MAX_PENDING_SENDS; i++) {
-		_pending_sends[i].task = this;
-		_pending_sends[i].active = false;
-		_pending_sends[i].retry_due = false;
-		k_timer_init(&_pending_sends[i].retry_timer, pendingRetryTimerCb, NULL);
-		k_timer_user_data_set(&_pending_sends[i].retry_timer, &_pending_sends[i]);
-	}
-
-	/* Channel-send feedback timers. */
-	for (int i = 0; i < MAX_PENDING_CHANNEL_SENDS; i++) {
-		_pending_channel_sends[i].task = this;
-		_pending_channel_sends[i].active = false;
-		_pending_channel_sends[i].feedback_due = false;
-		k_timer_init(&_pending_channel_sends[i].feedback_timer, pendingChannelFeedbackCb, NULL);
-		k_timer_user_data_set(&_pending_channel_sends[i].feedback_timer, &_pending_channel_sends[i]);
-	}
+	/* Retries and channel feedback run in helpers/ui/ui_outbox. */
+	static const struct ui_outbox_hooks outbox_hooks = {
+		.wake = outboxWake,
+		.dm_done = outboxDmDone,
+		.channel_done = outboxChannelDone,
+	};
+	s_outbox_owner = this;
+	ui_outbox_set_hooks(&outbox_hooks);
 
 	/* Init key queue */
 	k_msgq_init(&_key_queue, _key_buf, sizeof(char), JOYSTICK_KEY_QUEUE_DEPTH);
@@ -838,9 +659,8 @@ void JoystickUITask::loop()
 	 * periodic timers it owns. */
 	onDisplayStateChanged();
 
-	/* Pending-DM retry timers may have fired in ISR. */
-	processPendingRetries();
-	processPendingChannelFeedback();
+	/* Outbox retry / feedback timers may have fired in ISR. */
+	ui_outbox_process();
 
 	/* Drain all pending keys — apply navigation in one pass, render once. */
 	char keys[JOYSTICK_KEY_QUEUE_DEPTH];
