@@ -9,8 +9,9 @@
  *
  *   up / down       previous / next item; held: first / last item
  *   centre          select; held: home screen
- *   left            back (or adjust the focused slider, keyboard, map)
- *   right           nothing (or adjust the slider, keyboard, text field, map)
+ *   left / right    home screen: previous / next tab
+ *   left            elsewhere: back (or adjust the slider, keyboard, text field, map)
+ *   right           elsewhere: nothing (or adjust the same)
  *   back / user btn back; 2-5 taps: LEDs, buzzer, GPS, flood advert
  *   typed keys      into the text field (keypad boards)
  *
@@ -403,17 +404,27 @@ static void focus_edge(bool last)
 	}
 }
 
-/* Left / right on a tab button: the neighbouring tab, shown and focused. */
-static void switch_tab(lv_obj_t *f, int dir)
+/* Left / right on the home screen: the neighbouring tab. The focus follows to
+ * its tab button when it was on the tab bar, else to the tab's first item. */
+static void switch_tab(bool on_tab_bar, int dir)
 {
 	lv_obj_t *tv = home_tabs();
-	int32_t n = (int32_t)lv_obj_get_child_count(lv_tabview_get_content(tv));
-	int32_t i = lv_obj_get_index(f) + dir;
+	lv_obj_t *content = lv_tabview_get_content(tv);
+	int32_t n = (int32_t)lv_obj_get_child_count(content);
+	int32_t i = (int32_t)lv_tabview_get_tab_active(tv) + dir;
+	static lv_obj_t *items[FOCUS_MAX];
+	int count = 0;
 
-	if (i >= 0 && i < n) {
-		lv_tabview_set_active(tv, (uint32_t)i, LV_ANIM_ON);
-		want_focus = lv_obj_get_child(lv_tabview_get_tab_bar(tv), i);
+	if (i < 0 || i >= n) {
+		return;
 	}
+	/* Without animation when the focus goes into the tab: focusing an item
+	 * mid-scroll scrolls it into view from the old tab, which snaps back. */
+	lv_tabview_set_active(tv, (uint32_t)i, on_tab_bar ? LV_ANIM_ON : LV_ANIM_OFF);
+	if (!on_tab_bar) {
+		collect(lv_obj_get_child(content, i), items, &count);
+	}
+	want_focus = count ? items[0] : lv_obj_get_child(lv_tabview_get_tab_bar(tv), i);
 }
 
 /* Centre on a text field: bring up and focus its keyboard. */
@@ -500,15 +511,16 @@ static uint32_t translate(struct raw_key r)
 	case INPUT_KEY_RIGHT: {
 		bool right = r.code == INPUT_KEY_RIGHT;
 
-		if (kbd || map || slider || ta) {
-			return right ? LV_KEY_RIGHT : LV_KEY_LEFT;
-		}
 		if (dd_open) {
 			return 0;
 		}
-		if (tab) {
-			switch_tab(f, right ? 1 : -1);
+		/* On the home screen they only change tabs. */
+		if (lv_screen_active() == mcui_home && !modal_panel() && home_tabs()) {
+			switch_tab(tab, right ? 1 : -1);
 			return 0;
+		}
+		if (kbd || map || slider || ta) {
+			return right ? LV_KEY_RIGHT : LV_KEY_LEFT;
 		}
 		if (!right) {
 			go_back();

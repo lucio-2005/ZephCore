@@ -214,7 +214,8 @@ rm -rf build && west build -b native_sim/native/64 zephcore -- \
 ```
 
 The keyboard works as a joystick too: arrow keys to move, Enter to select (hold it for the
-home screen), Esc to go back; hold up or down to jump to the first or last item.
+home screen), Esc to go back; hold up or down to jump to the first or last item. On the home
+screen Left and Right change tabs; elsewhere Left goes back.
 
 Without a radio the lists stay empty. Add `CONFIG_ZEPHCORE_UI_LVGL_DEMO_DATA=y` (for example
 in a small extra `.conf` at the end of `EXTRA_CONF_FILE`) to fill them with sample messages
