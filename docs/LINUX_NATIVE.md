@@ -218,12 +218,15 @@ in a small extra `.conf` at the end of `EXTRA_CONF_FILE`) to fill them with samp
 and heard nodes at boot, and sample contacts that answer remote management requests.
 
 The map (Contacts tab > Map) draws offline tiles when it finds them in `tiles/` in the working
-directory, or in the folder `ZEPHCORE_MAP_TILES` names. Tiles are not included: convert a
-folder of 256 x 256 `<z>/<x>/<y>.png` tiles whose terms allow offline use (not bulk downloads
-from tile.openstreetmap.org, which its policy forbids) and keep the source's credit:
+directory, or in the folder `ZEPHCORE_MAP_TILES` names. Tiles are not included: convert raster
+tiles whose terms allow offline use (not bulk downloads from tile.openstreetmap.org, which its
+policy forbids) and keep the source's credit. The source is a folder of `<z>/<x>/<y>.png` (or
+`.jpg`, `.webp`) tiles, or a raster `.mbtiles` file, whose own attribution is used unless
+`--attribution` is given; 512 x 512 tiles are scaled down to 256, vector MBTiles are refused:
 
 ```bash
 python3 zephcore/scripts/map_tiles.py my-png-tiles tiles --attribution "(c) OpenStreetMap contributors"
+python3 zephcore/scripts/map_tiles.py rome.mbtiles tiles --max-zoom 15
 ```
 
 Without tiles, or at a zoom the folder lacks, the map shows range rings around your position.

@@ -2,11 +2,16 @@
 # SPDX-License-Identifier: MIT
 """Convert slippy-map tiles for the LVGL touch UI's map.
 
-Reads a folder of 256 x 256 tiles laid out as <z>/<x>/<y>.png (or .jpg, .webp,
-anything Pillow opens) and writes the same layout as <z>/<x>/<y>.bin in LVGL's
-binary image format, RGB565, which the UI draws without decoding.
+Reads raster tiles from a folder laid out as <z>/<x>/<y>.png (or .jpg, .webp,
+anything Pillow opens), or from an MBTiles file, and writes them as
+<z>/<x>/<y>.bin in LVGL's binary image format, RGB565, which the UI draws
+without decoding. Tiles are 256 x 256; 512 x 512 ("@2x") tiles are scaled down.
 
     python3 map_tiles.py SRC DST [--min-zoom 8] [--max-zoom 15] [--attribution TEXT]
+
+SRC is a folder or a .mbtiles file. An MBTiles file's own attribution is used
+when --attribution is not given. Vector MBTiles (pbf) must be rendered to
+raster first.
 
 Tiles are not bundled and must not be bulk-downloaded from
 tile.openstreetmap.org (its usage policy forbids it). Render your own, or use
@@ -19,9 +24,13 @@ point ZEPHCORE_MAP_TILES at it.
 
 import argparse
 import array
+import io
 import os
+import re
+import sqlite3
 import struct
 import sys
+import unicodedata
 
 try:
     from PIL import Image
@@ -47,44 +56,84 @@ def to_lvgl_bin(img):
     return header + px.tobytes()
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("src", help="folder with <z>/<x>/<y>.<image> tiles")
-    ap.add_argument("dst", help="output folder")
-    ap.add_argument("--min-zoom", type=int, default=0)
-    ap.add_argument("--max-zoom", type=int, default=19)
-    ap.add_argument("--attribution", help="text for the map corner, e.g. the tile source's credit")
-    args = ap.parse_args()
-
-    done = skipped = 0
-    for z_name in sorted(os.listdir(args.src)):
-        if not z_name.isdigit() or not args.min_zoom <= int(z_name) <= args.max_zoom:
+def folder_tiles(src, zmin, zmax):
+    """(z, x, y, file object) for each tile in <z>/<x>/<y>.<ext>."""
+    for z_name in sorted(os.listdir(src)):
+        if not z_name.isdigit() or not zmin <= int(z_name) <= zmax:
             continue
-        z_dir = os.path.join(args.src, z_name)
+        z_dir = os.path.join(src, z_name)
         for x_name in sorted(os.listdir(z_dir)):
             x_dir = os.path.join(z_dir, x_name)
             if not x_name.isdigit() or not os.path.isdir(x_dir):
                 continue
             for f in sorted(os.listdir(x_dir)):
                 y_name, _ = os.path.splitext(f)
-                if not y_name.isdigit():
-                    continue
-                with Image.open(os.path.join(x_dir, f)) as img:
-                    if img.size != (TILE, TILE):
-                        print(f"skipped {z_name}/{x_name}/{f}: {img.size[0]}x{img.size[1]}, not 256x256")
-                        skipped += 1
-                        continue
-                    data = to_lvgl_bin(img)
-                out_dir = os.path.join(args.dst, z_name, x_name)
-                os.makedirs(out_dir, exist_ok=True)
-                with open(os.path.join(out_dir, y_name + ".bin"), "wb") as out:
-                    out.write(data)
-                done += 1
+                if y_name.isdigit():
+                    yield int(z_name), int(x_name), int(y_name), open(os.path.join(x_dir, f), "rb")
 
-    if args.attribution:
+
+def mbtiles_metadata(db):
+    try:
+        return dict(db.execute("SELECT name, value FROM metadata"))
+    except sqlite3.DatabaseError:
+        return {}
+
+
+def mbtiles_tiles(db, zmin, zmax):
+    """(z, x, y, file object); MBTiles counts rows from the south (TMS), so y is flipped."""
+    rows = db.execute("SELECT zoom_level, tile_column, tile_row, tile_data FROM tiles "
+                      "WHERE zoom_level BETWEEN ? AND ? ORDER BY zoom_level, tile_column, tile_row",
+                      (zmin, zmax))
+    for z, x, row, data in rows:
+        yield z, x, (1 << z) - 1 - row, io.BytesIO(data)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("src", help="folder with <z>/<x>/<y>.<image> tiles, or an .mbtiles file")
+    ap.add_argument("dst", help="output folder")
+    ap.add_argument("--min-zoom", type=int, default=0)
+    ap.add_argument("--max-zoom", type=int, default=19)
+    ap.add_argument("--attribution", help="text for the map corner, e.g. the tile source's credit")
+    args = ap.parse_args()
+
+    attribution = args.attribution
+    if os.path.isdir(args.src):
+        tiles = folder_tiles(args.src, args.min_zoom, args.max_zoom)
+    elif os.path.isfile(args.src):
+        db = sqlite3.connect(f"file:{args.src}?mode=ro", uri=True)
+        meta = mbtiles_metadata(db)
+        if meta.get("format", "").lower() in ("pbf", "mvt"):
+            sys.exit(f"{args.src} holds vector tiles: render them to raster (png/jpg) first")
+        if not attribution and meta.get("attribution"):
+            attribution = re.sub(r"<[^>]*>", "", meta["attribution"]).replace("&copy;", "(c)").replace("&amp;", "&")
+        tiles = mbtiles_tiles(db, args.min_zoom, args.max_zoom)
+    else:
+        sys.exit(f"{args.src}: no such folder or file")
+
+    done = skipped = 0
+    for z, x, y, f in tiles:
+        with f, Image.open(f) as img:
+            if img.size == (2 * TILE, 2 * TILE):
+                img = img.convert("RGB").resize((TILE, TILE), Image.LANCZOS)
+            elif img.size != (TILE, TILE):
+                print(f"skipped {z}/{x}/{y}: {img.size[0]}x{img.size[1]}, not 256x256 or 512x512")
+                skipped += 1
+                continue
+            data = to_lvgl_bin(img)
+        out_dir = os.path.join(args.dst, str(z), str(x))
+        os.makedirs(out_dir, exist_ok=True)
+        with open(os.path.join(out_dir, f"{y}.bin"), "wb") as out:
+            out.write(data)
+        done += 1
+
+    if attribution:
+        # The UI's fonts are ASCII only.
+        line = attribution.strip().splitlines()[0].replace("\u00a9", "(c)")
+        line = unicodedata.normalize("NFKD", line).encode("ascii", "ignore").decode()
         os.makedirs(args.dst, exist_ok=True)
         with open(os.path.join(args.dst, "attribution.txt"), "w") as out:
-            out.write(args.attribution.strip() + "\n")
+            out.write(line + "\n")
     print(f"{done} tiles written to {args.dst}" + (f", {skipped} skipped" if skipped else ""))
     return 0 if done else 1
 
