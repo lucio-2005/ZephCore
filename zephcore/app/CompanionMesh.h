@@ -175,6 +175,25 @@ public:
 	int getRecentlyHeard(AdvertPath dest[], int max_num);
 	const AdvertPath *findAdvertPath(const uint8_t *pubkey_prefix, int prefix_len);
 
+	/* Settings, shared by the companion protocol handlers and the on-device UI.
+	 * Each validates like its handler, saves prefs and applies side effects;
+	 * false means the value was rejected and nothing changed. */
+	bool applyAdvertName(const char *name, size_t len);
+	bool applyAdvertLatLon(int32_t lat_e6, int32_t lon_e6);
+	bool applyRadioParams(uint32_t freq_khz, uint32_t bw_hz, uint8_t sf, uint8_t cr, uint8_t repeat);
+	bool applyTxPower(int8_t dbm);
+	void applyTuningParams(uint32_t rx_delay_x1000, uint32_t airtime_factor_x1000);
+	void applyOtherParams(uint8_t manual_add_contacts, uint8_t telemetry_modes,
+			      uint8_t advert_loc_policy, uint8_t multi_acks);
+	bool applyPathHashMode(uint8_t mode);
+	bool applyDevicePin(uint32_t pin);
+	bool applyCustomVar(const char *key, const char *val);
+	void applyAutoaddConfig(uint8_t config, int max_hops);  /* max_hops < 0 keeps it */
+	bool applyTzOffset(int8_t hours);
+	/* Flush lazy writes / wipe storage; the caller reboots. */
+	void rebootDevice();
+	void factoryResetDevice();
+
 	/* A DM sent from the device UI, queued for the app with path_len
 	 * OUT_PATH_SENT and a "(>>✓) "/"(>>✗) " delivery marker. */
 	void queueLocalSentContactMessage(const ContactInfo &contact, uint32_t timestamp,

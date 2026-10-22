@@ -1,0 +1,20 @@
+<!-- Header of a settings screen: Back to home and the title. Buttons added as children go on the right. -->
+<component>
+    <api>
+        <prop name="title" type="string" default=""/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false" clickable="false"
+          style_pad_ver="4" style_pad_left="4">
+        <style name="style_statusbar"/>
+        <lv_button width="content" height="content">
+            <style name="style_btn"/>
+            <style name="style_btn_pressed" selector="pressed"/>
+            <screen_load_event trigger="clicked" screen="home" anim_type="move_right" duration="200"/>
+            <lv_label text="&lt; Back" style_text_font="font_small"/>
+        </lv_button>
+        <lv_label text="$title" flex_grow="1">
+            <style name="style_title"/>
+        </lv_label>
+    </view>
+</component>

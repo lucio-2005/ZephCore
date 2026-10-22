@@ -7,8 +7,8 @@
  *
  * Threading: the ui_* setters may run on any thread. They write a model under
  * a spinlock, mark it dirty and wake the main loop. ui_lvgl_run() copies the
- * model and touches LVGL on the main thread only. Settings changed on screen
- * go back to the mesh through ui_mesh_actions.
+ * model and touches LVGL on the main thread only. The Settings screens live in
+ * ui_lvgl_settings.c.
  *
  * Wakeups: a k_timer armed with LVGL's next deadline, plus an input callback.
  * The pointer read timer is paused while the screen is untouched, so an idle
@@ -38,6 +38,7 @@
 #include "ui_mesh_actions.h"
 #include "ui_outbox.h"
 #include "ui_lvgl.h"
+#include "ui_lvgl_priv.h"
 #include "mcui_gen.h"
 
 #ifdef CONFIG_ZEPHCORE_UI_BUZZER
@@ -171,6 +172,7 @@ static uint32_t conv_shown_seq;
 static int out_id_next;
 static lv_obj_t *alerts_screen;
 static lv_timer_t *toast_timer;
+static lv_obj_t *toast_obj;
 
 static void wake(void)
 {
@@ -367,10 +369,17 @@ static void toast_hide(lv_timer_t *timer)
 
 static void toast(enum alert_level level, const char *text)
 {
+	/* Above anything opened on the top layer since (the edit panel). */
+	lv_obj_move_foreground(toast_obj);
 	lv_subject_set_string(mcui_toast_text, text);
 	lv_subject_set_int(mcui_toast_level, level == ALERT_ERR ? 2 : 1);
 	lv_timer_reset(toast_timer);
 	lv_timer_resume(toast_timer);
+}
+
+void ui_lvgl_toast(bool error, const char *text)
+{
+	toast(error ? ALERT_ERR : ALERT_WARN, text);
 }
 
 /* ========== Conversations ========== */
@@ -772,16 +781,6 @@ static void settings_observer(lv_observer_t *observer, lv_subject_t *subject)
 		mesh_gps_set_enabled(v != 0);
 	} else if (subject == mcui_ble_on) {
 		mesh_ble_set_enabled(v != 0);
-	} else if (subject == mcui_buzzer_on) {
-		mesh_set_buzzer_mode(v ? 1 : 0);
-	} else if (subject == mcui_brightness) {
-		mesh_save_brightness((uint8_t)(v * 255 / 100));
-	} else if (subject == mcui_screen_timeout) {
-		static const uint16_t secs[] = {15, 30, 60, 300, 0};
-
-		if (v >= 0 && v < (int32_t)ARRAY_SIZE(secs)) {
-			mesh_save_screen_off_secs(secs[v]);
-		}
 	}
 }
 
@@ -834,7 +833,7 @@ static void apply_model(uint32_t bits)
 	if (bits & D_SETTINGS) {
 		set_int(mcui_gps_on, view.gps_enabled);
 		set_int(mcui_ble_on, view.ble_enabled);
-		set_int(mcui_buzzer_on, view.buzzer_mode != 0);
+		ui_lvgl_settings_load();
 	}
 	if (bits & D_COUNT) {
 		set_int(mcui_unread_total, view.msg_count);
@@ -937,6 +936,8 @@ void ui_lvgl_register(void (*signal)(void))
 
 	signal_fn = signal;
 	ui_outbox_set_hooks(&outbox_hooks);
+	/* NodePrefs are loaded by now: fill the Settings screens. */
+	mark(D_SETTINGS);
 #ifdef CONFIG_ZEPHCORE_UI_LVGL_DEMO_DATA
 	demo_fill();
 #endif
@@ -1015,18 +1016,18 @@ int ui_init(void)
 		lv_obj_clean(contacts);
 	}
 
-	lv_subject_t *settings[] = {mcui_gps_on, mcui_ble_on, mcui_buzzer_on, mcui_brightness,
-				    mcui_screen_timeout};
-
-	for (size_t i = 0; i < ARRAY_SIZE(settings); i++) {
-		lv_subject_add_observer(settings[i], settings_observer, NULL);
-	}
+	/* Registering calls the observer once; it must not apply anything. */
+	applying = true;
+	lv_subject_add_observer(mcui_gps_on, settings_observer, NULL);
+	lv_subject_add_observer(mcui_ble_on, settings_observer, NULL);
+	applying = false;
+	ui_lvgl_settings_init();
 
 	/* globals.xml carries preview values for the problem subjects. */
 	lv_subject_set_int(mcui_alert_count, 0);
 	lv_subject_set_int(mcui_banner_level, 0);
 	lv_subject_set_int(mcui_toast_level, 0);
-	mcui_toast_create(lv_layer_top());
+	toast_obj = mcui_toast_create(lv_layer_top());
 	toast_timer = lv_timer_create(toast_hide, TOAST_MS, NULL);
 	lv_timer_set_auto_delete(toast_timer, false);
 	lv_timer_set_repeat_count(toast_timer, -1);
@@ -1365,5 +1366,7 @@ void ui_set_buzzer_mode(uint8_t mode)
 
 void ui_set_offgrid_mode(bool enabled)
 {
+	/* The frequency moved too; the Settings screens reload from prefs. */
 	ARG_UNUSED(enabled);
+	mark(D_SETTINGS | D_RADIO);
 }

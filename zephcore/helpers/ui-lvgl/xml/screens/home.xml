@@ -3,6 +3,8 @@
 <screen permanent="true">
     <view flex_flow="column" scrollable="false">
         <style name="style_screen"/>
+        <!-- Back from a settings screen: refresh the menu summaries. -->
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="menu"/>
 
         <status_bar/>
 
@@ -130,52 +132,31 @@
             <!-- ============ SETTINGS ============ -->
             <lv_tabview-tab text="Settings" flex_flow="column">
                 <style name="style_page"/>
-
-                <section_label text="DISPLAY"/>
-                <lv_obj width="100%" height="content" flex_flow="column" scrollable="false">
-                    <style name="style_card"/>
-                    <lv_obj width="100%" height="content" flex_flow="row" scrollable="false"
-                            style_flex_cross_place="center">
-                        <style name="style_plain"/>
-                        <lv_label text="Brightness" flex_grow="1"/>
-                        <lv_label bind_text="brightness" bind_text-fmt="%d%%">
-                            <style name="style_text_muted"/>
-                        </lv_label>
-                    </lv_obj>
-                    <lv_slider width="100%" height="6" min_value="5" max_value="100" bind_value="brightness"
-                               style_margin_ver="6">
-                        <style name="style_track"/>
-                        <style name="style_indicator" selector="indicator"/>
-                        <style name="style_knob" selector="knob"/>
-                    </lv_slider>
-                </lv_obj>
-                <setting_row label="Screen timeout" hint="Turn the display off when idle">
-                    <lv_dropdown width="84" options="15 s&#10;30 s&#10;1 min&#10;5 min&#10;Never"
-                                 bind_value="screen_timeout">
-                        <style name="style_dropdown"/>
-                        <lv_dropdown-list>
-                            <style name="style_dropdown_list"/>
-                            <style name="style_dropdown_sel" selector="selected|checked"/>
-                            <style name="style_dropdown_sel" selector="selected|pressed"/>
-                        </lv_dropdown-list>
-                    </lv_dropdown>
-                </setting_row>
-
-                <section_label text="RADIO AND LOCATION"/>
-                <setting_row label="GPS" hint="Share position in adverts">
-                    <mc_switch subject="gps_on"/>
-                </setting_row>
-                <setting_row label="Bluetooth" hint="Companion app connection">
-                    <mc_switch subject="ble_on"/>
-                </setting_row>
-                <setting_row label="Auto advert" hint="Send a flood advert every 12 h">
-                    <mc_switch subject="auto_advert"/>
-                </setting_row>
-
-                <section_label text="NOTIFICATIONS"/>
-                <setting_row label="Buzzer" hint="Beep on new messages">
-                    <mc_switch subject="buzzer_on"/>
-                </setting_row>
+                <!-- The same settings the MeshCore app offers, plus device-only ones. -->
+                <nav_row name="nav_public" title="Public info" summary="sum_public">
+                    <screen_create_event trigger="clicked" screen="settings_public" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_radio" title="Radio" summary="sum_radio">
+                    <screen_create_event trigger="clicked" screen="settings_radio" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_contacts" title="Contacts" summary="sum_contacts">
+                    <screen_create_event trigger="clicked" screen="settings_contacts" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_telemetry" title="Telemetry" summary="sum_telemetry">
+                    <screen_create_event trigger="clicked" screen="settings_telemetry" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_location" title="Location and time" summary="sum_location">
+                    <screen_create_event trigger="clicked" screen="settings_location" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_bluetooth" title="Bluetooth" summary="sum_bluetooth">
+                    <screen_create_event trigger="clicked" screen="settings_bluetooth" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_device" title="Device" summary="sum_device">
+                    <screen_create_event trigger="clicked" screen="settings_device" anim_type="move_left" duration="200"/>
+                </nav_row>
+                <nav_row name="nav_advanced" title="Advanced" summary="sum_advanced">
+                    <screen_create_event trigger="clicked" screen="settings_advanced" anim_type="move_left" duration="200"/>
+                </nav_row>
             </lv_tabview-tab>
 
             <!-- Tab bar styling (must come after the tabs so the buttons exist) -->

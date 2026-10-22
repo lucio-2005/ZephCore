@@ -1,0 +1,21 @@
+<!-- A setting shown as text; tapping it opens the edit panel for that key. -->
+<component>
+    <api>
+        <prop name="label" type="string" default=""/>
+        <prop name="value" type="subject" default="set_name"/>
+        <prop name="key" type="string" default="name"/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
+        <style name="style_row"/>
+        <style name="style_row_pressed" selector="pressed"/>
+        <event_cb trigger="clicked" callback="ui_on_edit" user_data="$key"/>
+        <lv_label text="$label" flex_grow="1"/>
+        <lv_label bind_text="$value" style_max_width="60%" height="18" long_mode="dots">
+            <style name="style_text_muted"/>
+        </lv_label>
+        <lv_label text="&gt;">
+            <style name="style_text_muted"/>
+        </lv_label>
+    </view>
+</component>

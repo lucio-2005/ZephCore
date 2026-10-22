@@ -1,0 +1,21 @@
+<!-- Settings: Location and time. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="location"/>
+        <sub_header title="Location and time"/>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <setting_row label="GPS" hint="Use the GPS receiver">
+                <mc_switch subject="gps_on"/>
+            </setting_row>
+            <value_row label="GPS interval" value="set_gps_interval" key="gps_interval"/>
+            <setting_row label="Mesh time sync" hint="Set the clock from the mesh">
+                <mc_switch subject="set_timesync"/>
+            </setting_row>
+            <setting_row label="Time zone" hint="For times shown on screen">
+                <mc_dropdown subject="set_tz" options="UTC-12&#10;UTC-11&#10;UTC-10&#10;UTC-9&#10;UTC-8&#10;UTC-7&#10;UTC-6&#10;UTC-5&#10;UTC-4&#10;UTC-3&#10;UTC-2&#10;UTC-1&#10;UTC&#10;UTC+1&#10;UTC+2&#10;UTC+3&#10;UTC+4&#10;UTC+5&#10;UTC+6&#10;UTC+7&#10;UTC+8&#10;UTC+9&#10;UTC+10&#10;UTC+11&#10;UTC+12&#10;UTC+13&#10;UTC+14"/>
+            </setting_row>
+        </lv_obj>
+    </view>
+</screen>

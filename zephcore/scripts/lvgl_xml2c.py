@@ -427,8 +427,9 @@ def gen_special(ctx, depth, v, el):
 		cb = ident(a['callback'])
 		ctx.externs.add(f'void {cb}(lv_event_t * e);')
 		ud = a.get('user_data')
-		e(f'lv_obj_add_event_cb({v}, {cb}, {event_code(a.get("trigger", "clicked"))}, '
-		  f'{"(void *)" + c_str(ud) if ud else "NULL"});')
+		# A literal, or a string property of the component ("$key").
+		ud_c = '(void *)' + ctx.resolve(ud, 'string', what) if ud else 'NULL'
+		e(f'lv_obj_add_event_cb({v}, {cb}, {event_code(a.get("trigger", "clicked"))}, {ud_c});')
 	elif tag == 'subject_set_string_event':
 		e(f'lv_obj_add_subject_set_string_event({v}, {ctx.subject_ref(a["subject"], what)}, '
 		  f'{event_code(a.get("trigger", "clicked"))}, {ctx.resolve(a["value"], "string", what)});')

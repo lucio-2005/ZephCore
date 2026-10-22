@@ -1,0 +1,23 @@
+<!-- Settings: Telemetry. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="telemetry"/>
+        <sub_header title="Telemetry"></sub_header>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <lv_label text="Who may request this node's telemetry." width="100%">
+                <style name="style_text_muted"/>
+            </lv_label>
+            <setting_row label="Base" hint="Battery and status">
+                <mc_dropdown subject="set_tel_base" options="Nobody&#10;Allowed contacts&#10;Everyone"/>
+            </setting_row>
+            <setting_row label="Location" hint="GPS position">
+                <mc_dropdown subject="set_tel_loc" options="Nobody&#10;Allowed contacts&#10;Everyone"/>
+            </setting_row>
+            <setting_row label="Environment" hint="Sensor readings">
+                <mc_dropdown subject="set_tel_env" options="Nobody&#10;Allowed contacts&#10;Everyone"/>
+            </setting_row>
+        </lv_obj>
+    </view>
+</screen>

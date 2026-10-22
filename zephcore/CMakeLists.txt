@@ -791,6 +791,8 @@ if(CONFIG_ZEPHCORE_UI_DESIGN_LVGL)
   )
   target_sources(app PRIVATE
     helpers/ui-lvgl/ui_lvgl.c
+    helpers/ui-lvgl/ui_lvgl_settings.c
+    helpers/ui-lvgl/ui_settings.cpp
     ${_ui_lvgl_generated}
   )
   target_include_directories(app PRIVATE

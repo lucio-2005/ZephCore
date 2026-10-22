@@ -147,13 +147,56 @@
         <string name="chat_path"     value="Direct | 1 hop"/>
         <int    name="show_keyboard" value="0" min_value="0" max_value="1"/>
 
-        <!-- Settings -->
-        <int name="brightness"     value="70" min_value="5" max_value="100"/>
-        <int name="screen_timeout" value="1"/>
-        <int name="gps_on"         value="1"/>
-        <int name="ble_on"         value="1"/>
-        <int name="auto_advert"    value="1"/>
-        <int name="buzzer_on"      value="0"/>
+        <!-- Settings. The device loads these from NodePrefs when a settings screen
+             opens; the values here are what the previewer shows. Dropdowns hold the
+             selected index. -->
+        <string name="set_name"         value="IT-Roma-Base"/>
+        <string name="set_lat"          value="41.902800"/>
+        <string name="set_lon"          value="12.496400"/>
+        <int    name="set_share_loc"    value="1"/>
+        <int    name="set_preset"       value="1"/>
+        <string name="set_freq"         value="869.618 MHz"/>
+        <int    name="set_bw"           value="6"/>
+        <int    name="set_sf"           value="3"/>
+        <int    name="set_cr"           value="3"/>
+        <int    name="set_txp"          value="22" min_value="-9" max_value="22"/>
+        <int    name="set_offgrid"      value="0"/>
+        <int    name="set_aa_all"       value="1"/>
+        <int    name="set_aa_chat"      value="1"/>
+        <int    name="set_aa_rpt"       value="1"/>
+        <int    name="set_aa_room"      value="1"/>
+        <int    name="set_aa_sensor"    value="0"/>
+        <int    name="set_aa_overwrite" value="0"/>
+        <int    name="set_aa_maxhops"   value="0"/>
+        <int    name="set_tel_base"     value="2"/>
+        <int    name="set_tel_loc"      value="1"/>
+        <int    name="set_tel_env"      value="1"/>
+        <int    name="gps_on"           value="1"/>
+        <string name="set_gps_interval" value="every 300 s"/>
+        <int    name="set_timesync"     value="1"/>
+        <int    name="set_tz"           value="13"/>
+        <int    name="set_buzzer"       value="1"/>
+        <int    name="set_leds"         value="1"/>
+        <int    name="ble_on"           value="1"/>
+        <string name="set_pin"          value="123456"/>
+        <int    name="set_multi_acks"   value="0"/>
+        <int    name="set_path_hash"    value="0"/>
+        <string name="set_rx_delay"     value="0.000"/>
+        <string name="set_airtime"      value="1.000"/>
+
+        <!-- One-line summaries on the Settings menu -->
+        <string name="sum_public"    value="IT-Roma-Base | location shared"/>
+        <string name="sum_radio"     value="869.618 MHz | 62.5 kHz | SF8 | 22 dBm"/>
+        <string name="sum_contacts"  value="Add every node"/>
+        <string name="sum_telemetry" value="Base: everyone | location, sensors: allowed"/>
+        <string name="sum_location"  value="GPS on | UTC+1"/>
+        <string name="sum_device"    value="Buzzer on | LEDs on"/>
+        <string name="sum_bluetooth" value="On | PIN 123456"/>
+        <string name="sum_advanced"  value="1-byte path hash | single ACKs"/>
+
+        <!-- Edit panel -->
+        <string name="edit_title" value="Name"/>
+        <string name="edit_hint"  value="Up to 31 characters"/>
     </subjects>
 
     <images>

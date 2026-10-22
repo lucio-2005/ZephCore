@@ -1,0 +1,17 @@
+<!-- Settings: Public info. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="public"/>
+        <sub_header title="Public info"></sub_header>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <value_row label="Name" value="set_name" key="name"/>
+            <value_row label="Latitude" value="set_lat" key="lat"/>
+            <value_row label="Longitude" value="set_lon" key="lon"/>
+            <setting_row label="Share location" hint="Include this position in adverts">
+                <mc_switch subject="set_share_loc"/>
+            </setting_row>
+        </lv_obj>
+    </view>
+</screen>

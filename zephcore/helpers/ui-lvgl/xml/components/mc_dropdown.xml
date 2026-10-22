@@ -1,0 +1,16 @@
+<!-- Themed dropdown bound to an int subject (the selected index). -->
+<component>
+    <api>
+        <prop name="subject" type="subject" default="set_tz"/>
+        <prop name="options" type="string" default=""/>
+    </api>
+
+    <view extends="lv_dropdown" width="120" options="$options" bind_value="$subject">
+        <style name="style_dropdown"/>
+        <lv_dropdown-list>
+            <style name="style_dropdown_list"/>
+            <style name="style_dropdown_sel" selector="selected|checked"/>
+            <style name="style_dropdown_sel" selector="selected|pressed"/>
+        </lv_dropdown-list>
+    </view>
+</component>

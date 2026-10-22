@@ -6,7 +6,9 @@ runs and `docs/LINUX_NATIVE.md` for the native_sim desktop preview.
 ```
 xml/          the layout, in LVGL's XML format (source of truth)
 generated/    C made from xml/ by scripts/lvgl_xml2c.py (do not edit)
-ui_lvgl.c     ui_task.h implementation: model -> subjects, lists, settings -> ui_mesh_actions
+ui_lvgl.c           ui_task.h implementation: model -> subjects, lists, alerts, toasts
+ui_lvgl_settings.c  the Settings screens: NodePrefs -> subjects, changes -> ui_settings / ui_mesh_actions
+ui_settings.*       NodePrefs access through the CompanionMesh methods the app's commands use
 ```
 
 ## Changing the layout
@@ -27,9 +29,16 @@ ui_lvgl.c     ui_task.h implementation: model -> subjects, lists, settings -> ui
 
 - Names: `chat_list`, `contact_list` (home), `msg_list`, `msg_input`, `msg_kbd` (conversation).
   The sample rows in those containers are for the previewer and are removed at boot.
+  Settings: `nav_bluetooth` (hidden without Bluetooth), `radio_preset`, `radio_txp`,
+  `row_buzzer`, `dev_buzzer`, and `edit_input` / `edit_kbd` in the edit panel.
+- Settings subjects (`set_*`, `sum_*`) hold dropdown indexes in the order of the XML options;
+  `ui_lvgl_settings.c` maps them to NodePrefs values, so keep the two in step.
 - Subjects in `globals.xml`; `ui_lvgl.c` sets them from the mesh.
 - `event_cb` callbacks: `ui_on_conversation_open`, `ui_on_send`, `ui_on_advert_zerohop`,
-  `ui_on_advert_flood`.
+  `ui_on_advert_flood`, `ui_on_alerts_open`, `ui_on_alerts_clear`, `ui_on_settings_open`
+  (user_data names the screen), `ui_on_edit` (user_data is the setting key), `ui_on_edit_save`,
+  `ui_on_edit_cancel`, `ui_on_radio_save`, `ui_on_reboot`, `ui_on_factory_reset`.
+- `user_data="$prop"` passes a component's string property to the callback.
 
 The generator accepts only the XML subset it knows and stops with an error on anything else.
 LVGL 9.5 moved its own XML engine out of the open-source library; this project only uses the

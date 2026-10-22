@@ -1,0 +1,23 @@
+<!-- Settings menu entry: title, a one-line summary of the current values, and a chevron.
+     Add a screen_create_event child to make it open its screen. -->
+<component>
+    <api>
+        <prop name="title" type="string" default=""/>
+        <prop name="summary" type="subject" default="sum_public"/>
+    </api>
+
+    <view extends="lv_obj" width="100%" height="content" flex_flow="row" scrollable="false">
+        <style name="style_row"/>
+        <style name="style_row_pressed" selector="pressed"/>
+        <lv_obj flex_grow="1" height="content" flex_flow="column" clickable="false" scrollable="false">
+            <style name="style_plain"/>
+            <lv_label text="$title"/>
+            <lv_label bind_text="$summary" width="100%" height="15" long_mode="dots">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+        <lv_label text="&gt;">
+            <style name="style_text_muted"/>
+        </lv_label>
+    </view>
+</component>

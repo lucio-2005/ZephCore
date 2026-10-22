@@ -2112,42 +2112,49 @@ bool CompanionMesh::handleCmdGetContacts(const uint8_t *data, size_t len)
 	return true;
 }
 
+bool CompanionMesh::applyAdvertName(const char *name, size_t nlen)
+{
+	if (nlen == 0) return false;
+	if (nlen >= sizeof(prefs.node_name)) nlen = sizeof(prefs.node_name) - 1;
+	memcpy(prefs.node_name, name, nlen);
+	prefs.node_name[nlen] = '\0';
+	_store->savePrefs(prefs);
+#if IS_ENABLED(CONFIG_BT)
+	/* Push the new name to BLE so scanners see it without a reboot. */
+	zephcore_ble_update_name(prefs.node_name);
+#endif
+	/* v-contact name tracks the node name — update the app's copy. */
+	vcontactPushAdvert();
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetAdvertName(const uint8_t *data, size_t len)
 {
 	if (len >= 2) {
-		size_t nlen = len - 1;
-		if (nlen >= sizeof(prefs.node_name)) nlen = sizeof(prefs.node_name) - 1;
-		memcpy(prefs.node_name, &data[1], nlen);
-		prefs.node_name[nlen] = '\0';
-		_store->savePrefs(prefs);
-#if IS_ENABLED(CONFIG_BT)
-		/* Push the new name to BLE so scanners see it without a reboot. */
-		zephcore_ble_update_name(prefs.node_name);
-#endif
-		/* v-contact name tracks the node name — update the app's copy. */
-		vcontactPushAdvert();
+		applyAdvertName((const char *)&data[1], len - 1);
 	}
 	writeOKFrame();
 	return true;
 }
 
+bool CompanionMesh::applyAdvertLatLon(int32_t lat, int32_t lon)
+{
+	// Arduino validation: lat ±90°, lon ±180° (in microdegrees)
+	if (lat < -90000000 || lat > 90000000 || lon < -180000000 || lon > 180000000) {
+		return false;
+	}
+	prefs.node_lat = (double)lat / 1000000.0;
+	prefs.node_lon = (double)lon / 1000000.0;
+	_store->savePrefs(prefs);
+	LOG_INF("SET_ADVERT_LATLON: lat=%d lon=%d policy=%d",
+		lat, lon, prefs.advert_loc_policy);
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetAdvertLatlon(const uint8_t *data, size_t len)
 {
-	if (len >= 9) {
-		int32_t lat = (int32_t)get_le32(&data[1]);
-		int32_t lon = (int32_t)get_le32(&data[5]);
-		// Arduino validation: lat ±90°, lon ±180° (in microdegrees)
-		if (lat >= -90000000 && lat <= 90000000 &&
-		    lon >= -180000000 && lon <= 180000000) {
-			prefs.node_lat = (double)lat / 1000000.0;
-			prefs.node_lon = (double)lon / 1000000.0;
-			_store->savePrefs(prefs);
-			LOG_INF("SET_ADVERT_LATLON: lat=%d lon=%d policy=%d",
-				lat, lon, prefs.advert_loc_policy);
-			writeOKFrame();
-		} else {
-			writeErrFrame(ERR_ILLEGAL_ARG);
-		}
+	if (len >= 9 && applyAdvertLatLon((int32_t)get_le32(&data[1]), (int32_t)get_le32(&data[5]))) {
+		writeOKFrame();
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
@@ -2428,47 +2435,52 @@ bool CompanionMesh::handleCmdSyncNextMessage(const uint8_t *data, size_t len)
 	return true;
 }
 
+bool CompanionMesh::applyRadioParams(uint32_t freq, uint32_t bw, uint8_t sf, uint8_t cr, uint8_t repeat)
+{
+	// If repeat requested, validate frequency against allowed bands
+	if (repeat && !mesh::isOffgridFreqKhz(freq)) {
+		return false;
+	}
+	/* freq arrives in kHz, bw in Hz. Same limits as the USB
+	 * CLI and the prefs loader — see NodePrefs.h. Accepting
+	 * here what loadPrefs() later rejects is how a 2.4 GHz
+	 * setting used to vanish on reboot. */
+	if (!(freq >= (uint32_t)(ZC_RADIO_FREQ_MIN_MHZ * 1000.0f) &&
+	      freq <= (uint32_t)(ZC_RADIO_FREQ_MAX_MHZ * 1000.0f) &&
+	      bw >= (uint32_t)(ZC_RADIO_BW_MIN_KHZ * 1000.0f) &&
+	      bw <= (uint32_t)(ZC_RADIO_BW_MAX_KHZ * 1000.0f) &&
+	      sf >= 5 && sf <= 12 &&
+	      cr >= 5 && cr <= 8)) {
+		return false;
+	}
+	/* Coding rate is deliberately not in this test:
+	 * it changes airtime, not the channel or the
+	 * per-SF/per-bandwidth detPeak base, so it does
+	 * not invalidate the learned CAD offset. */
+	bool preset_changed =
+		prefs.freq != (float)freq / 1000.0f ||
+		prefs.bw != (float)bw / 1000.0f ||
+		prefs.sf != sf;
+	prefs.freq = (float)freq / 1000.0f;
+	prefs.bw = (float)bw / 1000.0f;
+	prefs.sf = sf;
+	prefs.cr = cr;
+	prefs.client_repeat = repeat;
+	mesh::offgridFreqEdited(prefs);
+	_store->savePrefs(prefs);
+	if (_radio_reconfig_cb) _radio_reconfig_cb(preset_changed);
+	LOG_INF("SET_RADIO_PARAMS: client_repeat=%d", repeat);
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetRadioParams(const uint8_t *data, size_t len)
 {
 	if (len >= 11) {
-		uint32_t freq = get_le32(&data[1]);
-		uint32_t bw = get_le32(&data[5]);
-		uint8_t sf = data[9];
-		uint8_t cr = data[10];
 		uint8_t repeat = 0;
 		if (len > 11) {
 			repeat = data[11];  // v9+: client repeat flag
 		}
-		// If repeat requested, validate frequency against allowed bands
-		if (repeat && !mesh::isOffgridFreqKhz(freq)) {
-			writeErrFrame(ERR_ILLEGAL_ARG);
-		/* freq arrives in kHz, bw in Hz. Same limits as the USB
-		 * CLI and the prefs loader — see NodePrefs.h. Accepting
-		 * here what loadPrefs() later rejects is how a 2.4 GHz
-		 * setting used to vanish on reboot. */
-		} else if (freq >= (uint32_t)(ZC_RADIO_FREQ_MIN_MHZ * 1000.0f) &&
-		    freq <= (uint32_t)(ZC_RADIO_FREQ_MAX_MHZ * 1000.0f) &&
-		    bw >= (uint32_t)(ZC_RADIO_BW_MIN_KHZ * 1000.0f) &&
-		    bw <= (uint32_t)(ZC_RADIO_BW_MAX_KHZ * 1000.0f) &&
-		    sf >= 5 && sf <= 12 &&
-		    cr >= 5 && cr <= 8) {
-			/* Coding rate is deliberately not in this test:
-			 * it changes airtime, not the channel or the
-			 * per-SF/per-bandwidth detPeak base, so it does
-			 * not invalidate the learned CAD offset. */
-			bool preset_changed =
-				prefs.freq != (float)freq / 1000.0f ||
-				prefs.bw != (float)bw / 1000.0f ||
-				prefs.sf != sf;
-			prefs.freq = (float)freq / 1000.0f;
-			prefs.bw = (float)bw / 1000.0f;
-			prefs.sf = sf;
-			prefs.cr = cr;
-			prefs.client_repeat = repeat;
-			mesh::offgridFreqEdited(prefs);
-			_store->savePrefs(prefs);
-			if (_radio_reconfig_cb) _radio_reconfig_cb(preset_changed);
-			LOG_INF("SET_RADIO_PARAMS: client_repeat=%d", repeat);
+		if (applyRadioParams(get_le32(&data[1]), get_le32(&data[5]), data[9], data[10], repeat)) {
 			writeOKFrame();
 		} else {
 			writeErrFrame(ERR_ILLEGAL_ARG);
@@ -2479,22 +2491,32 @@ bool CompanionMesh::handleCmdSetRadioParams(const uint8_t *data, size_t len)
 	return true;
 }
 
+bool CompanionMesh::applyTxPower(int8_t power)
+{
+	if (power < -9 || power > MAX_LORA_TX_POWER) {
+		return false;
+	}
+	prefs.tx_power_dbm = power;
+	_store->savePrefs(prefs);
+	if (_radio_reconfig_cb) _radio_reconfig_cb(false);
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetRadioTxPower(const uint8_t *data, size_t len)
 {
-	if (len >= 2) {
-		int8_t power = (int8_t)data[1];
-		if (power >= -9 && power <= MAX_LORA_TX_POWER) {
-			prefs.tx_power_dbm = power;
-			_store->savePrefs(prefs);
-			if (_radio_reconfig_cb) _radio_reconfig_cb(false);
-			writeOKFrame();
-		} else {
-			writeErrFrame(ERR_ILLEGAL_ARG);
-		}
+	if (len >= 2 && applyTxPower((int8_t)data[1])) {
+		writeOKFrame();
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
 	return true;
+}
+
+void CompanionMesh::applyTuningParams(uint32_t rx_delay_x1000, uint32_t airtime_factor_x1000)
+{
+	prefs.rx_delay_base = (float)rx_delay_x1000 / 1000.0f;
+	prefs.airtime_factor = (float)airtime_factor_x1000 / 1000.0f;
+	_store->savePrefs(prefs);
 }
 
 bool CompanionMesh::handleCmdSetTuningParams(const uint8_t *data, size_t len)
@@ -2503,9 +2525,7 @@ bool CompanionMesh::handleCmdSetTuningParams(const uint8_t *data, size_t len)
 		writeErrFrame(ERR_ILLEGAL_ARG);
 		return true;
 	}
-	prefs.rx_delay_base = (float)get_le32(&data[1]) / 1000.0f;
-	prefs.airtime_factor = (float)get_le32(&data[5]) / 1000.0f;
-	_store->savePrefs(prefs);
+	applyTuningParams(get_le32(&data[1]), get_le32(&data[5]));
 	writeOKFrame();
 	return true;
 }
@@ -2520,52 +2540,68 @@ bool CompanionMesh::handleCmdGetTuningParams(const uint8_t *data, size_t len)
 	return true;
 }
 
+void CompanionMesh::applyOtherParams(uint8_t manual_add_contacts, uint8_t telemetry_modes,
+	uint8_t advert_loc_policy, uint8_t multi_acks)
+{
+	prefs.manual_add_contacts = manual_add_contacts;
+	// Telemetry modes: (env << 4) | (loc << 2) | base
+	prefs.telemetry_mode_base = telemetry_modes & 0x03;
+	prefs.telemetry_mode_loc = (telemetry_modes >> 2) & 0x03;
+	prefs.telemetry_mode_env = (telemetry_modes >> 4) & 0x03;
+	prefs.advert_loc_policy = advert_loc_policy;
+	LOG_INF("SET_OTHER_PARAMS: advert_loc_policy=%d", prefs.advert_loc_policy);
+	prefs.multi_acks = multi_acks;
+	_store->savePrefs(prefs);
+}
+
 bool CompanionMesh::handleCmdSetOtherParams(const uint8_t *data, size_t len)
 {
 	if (len >= 2) {
-		prefs.manual_add_contacts = data[1];
-		if (len >= 3) {
-			// Telemetry modes: (env << 4) | (loc << 2) | base
-			prefs.telemetry_mode_base = data[2] & 0x03;
-			prefs.telemetry_mode_loc = (data[2] >> 2) & 0x03;
-			prefs.telemetry_mode_env = (data[2] >> 4) & 0x03;
-			if (len >= 4) {
-				prefs.advert_loc_policy = data[3];
-				LOG_INF("SET_OTHER_PARAMS: advert_loc_policy=%d", prefs.advert_loc_policy);
-				if (len >= 5) {
-					prefs.multi_acks = data[4];
-				}
-			}
-		}
-		_store->savePrefs(prefs);
+		/* Fields the frame leaves out keep their current value. */
+		uint8_t telemetry = (uint8_t)((prefs.telemetry_mode_env << 4) |
+					      (prefs.telemetry_mode_loc << 2) |
+					      prefs.telemetry_mode_base);
+		applyOtherParams(data[1],
+				 len >= 3 ? data[2] : telemetry,
+				 len >= 4 ? data[3] : prefs.advert_loc_policy,
+				 len >= 5 ? data[4] : prefs.multi_acks);
 	}
 	writeOKFrame();
 	return true;
 }
 
+bool CompanionMesh::applyPathHashMode(uint8_t mode)
+{
+	if (mode >= 3) {
+		return false;
+	}
+	prefs.path_hash_mode = mode;
+	_store->savePrefs(prefs);
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetPathHashMode(const uint8_t *data, size_t len)
 {
-	if (len >= 3 && data[1] == 0) {
-		if (data[2] >= 3) {
-			writeErrFrame(ERR_ILLEGAL_ARG);
-		} else {
-			prefs.path_hash_mode = data[2];
-			_store->savePrefs(prefs);
-			writeOKFrame();
-		}
+	if (len >= 3 && data[1] == 0 && applyPathHashMode(data[2])) {
+		writeOKFrame();
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
 	return true;
 }
 
+void CompanionMesh::rebootDevice()
+{
+	LOG_INF("Reboot requested");
+	/* Flush any pending lazy writes before reboot */
+	flushDirtyContacts();
+	flushDirtyChannels();
+}
+
 bool CompanionMesh::handleCmdReboot(const uint8_t *data, size_t len)
 {
 	if (len >= 7 && memcmp(&data[1], "reboot", 6) == 0) {
-		LOG_INF("Reboot requested");
-		/* Flush any pending lazy writes before reboot */
-		flushDirtyContacts();
-		flushDirtyChannels();
+		rebootDevice();
 		writeOKFrame();
 		sys_reboot(SYS_REBOOT_COLD);
 	} else {
@@ -3070,19 +3106,26 @@ bool CompanionMesh::handleCmdSendTracePath(const uint8_t *data, size_t len)
 	return true;
 }
 
+bool CompanionMesh::applyDevicePin(uint32_t pin)
+{
+	if (pin != 0 && (pin < 100000 || pin > 999999)) {
+		return false;
+	}
+	prefs.ble_pin = pin;
+	_store->savePrefs(prefs);
+	if (_pin_change_cb) _pin_change_cb(pin);
+	return true;
+}
+
 bool CompanionMesh::handleCmdSetDevicePin(const uint8_t *data, size_t len)
 {
+	uint32_t pin;
+
 	if (len >= 5) {
-		uint32_t pin;
 		memcpy(&pin, &data[1], 4);
-		if (pin == 0 || (pin >= 100000 && pin <= 999999)) {
-			prefs.ble_pin = pin;
-			_store->savePrefs(prefs);
-			if (_pin_change_cb) _pin_change_cb(pin);
-			writeOKFrame();
-		} else {
-			writeErrFrame(ERR_ILLEGAL_ARG);
-		}
+	}
+	if (len >= 5 && applyDevicePin(pin)) {
+		writeOKFrame();
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
@@ -3146,9 +3189,40 @@ bool CompanionMesh::handleCmdGetCustomVars(const uint8_t *data, size_t len)
 	return true;
 }
 
+bool CompanionMesh::applyCustomVar(const char *key, const char *val)
+{
+	if (strcmp(key, "gps") == 0) {
+		bool enable = (val[0] == '1');
+		gps_enable(enable);
+		/* Persist GPS state across reboots */
+		prefs.gps_enabled = enable ? 1 : 0;
+		_store->savePrefs(prefs);
+		return true;
+	}
+	if (strcmp(key, "gps_interval") == 0) {
+		uint32_t interval = (uint32_t)atoi(val);
+		if (interval == 0 || interval > 86400) {
+			return false;
+		}
+		/* Stored as the GPS will run it (5 s is 10 s). */
+		prefs.gps_interval = clampGpsInterval(interval);
+		gps_set_poll_interval_sec(prefs.gps_interval);
+		_store->savePrefs(prefs);
+		return true;
+	}
+	if (strcmp(key, "meshtimesync") == 0) {
+		prefs.meshtimesync = (val[0] == '1') ? 1 : 0;
+		_store->savePrefs(prefs);
+		return true;
+	}
+	return false;
+}
+
 bool CompanionMesh::handleCmdSetCustomVar(const uint8_t *data, size_t len)
 {
 	// Format: [cmd][key:value]
+	bool ok = false;
+
 	if (len >= 4) {
 		char buf[64];
 		size_t copy_len = (len - 1 < sizeof(buf) - 1) ? len - 1 : sizeof(buf) - 1;
@@ -3158,37 +3232,11 @@ bool CompanionMesh::handleCmdSetCustomVar(const uint8_t *data, size_t len)
 		char *sep = strchr(buf, ':');
 		if (sep) {
 			*sep = '\0';
-			char *key = buf;
-			char *val = sep + 1;
-
-			if (strcmp(key, "gps") == 0) {
-				bool enable = (val[0] == '1');
-				gps_enable(enable);
-				/* Persist GPS state across reboots */
-				prefs.gps_enabled = enable ? 1 : 0;
-				_store->savePrefs(prefs);
-				writeOKFrame();
-			} else if (strcmp(key, "gps_interval") == 0) {
-				uint32_t interval = (uint32_t)atoi(val);
-				if (interval > 0 && interval <= 86400) {
-					/* Stored as the GPS will run it (5 s is 10 s). */
-					prefs.gps_interval = clampGpsInterval(interval);
-					gps_set_poll_interval_sec(prefs.gps_interval);
-					_store->savePrefs(prefs);
-					writeOKFrame();
-				} else {
-					writeErrFrame(ERR_ILLEGAL_ARG);
-				}
-			} else if (strcmp(key, "meshtimesync") == 0) {
-				prefs.meshtimesync = (val[0] == '1') ? 1 : 0;
-				_store->savePrefs(prefs);
-				writeOKFrame();
-			} else {
-				writeErrFrame(ERR_ILLEGAL_ARG);
-			}
-		} else {
-			writeErrFrame(ERR_ILLEGAL_ARG);
+			ok = applyCustomVar(buf, sep + 1);
 		}
+	}
+	if (ok) {
+		writeOKFrame();
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
@@ -3273,18 +3321,33 @@ bool CompanionMesh::handleCmdGetStats(const uint8_t *data, size_t len)
 	return true;
 }
 
+void CompanionMesh::factoryResetDevice()
+{
+	LOG_INF("Factory reset requested");
+	_store->factoryReset();
+}
+
 bool CompanionMesh::handleCmdFactoryReset(const uint8_t *data, size_t len)
 {
 	// Arduino: requires "reset" magic string for safety
 	if (len >= 6 && memcmp(&data[1], "reset", 5) == 0) {
-		LOG_INF("Factory reset requested");
-		_store->factoryReset();
+		factoryResetDevice();
 		writeOKFrame();
 		// Reboot to regenerate identity
 		sys_reboot(SYS_REBOOT_COLD);
 	} else {
 		writeErrFrame(ERR_ILLEGAL_ARG);
 	}
+	return true;
+}
+
+bool CompanionMesh::applyTzOffset(int8_t hours)
+{
+	if (hours < TZ_OFFSET_MIN || hours > TZ_OFFSET_MAX) {
+		return false;
+	}
+	prefs.tz_offset = hours;
+	_store->savePrefs(prefs);
 	return true;
 }
 
@@ -3367,16 +3430,21 @@ bool CompanionMesh::handleCmdSendControlData(const uint8_t *data, size_t len)
 	return true;
 }
 
+void CompanionMesh::applyAutoaddConfig(uint8_t config, int max_hops)
+{
+	prefs.autoadd_config = config;
+	if (max_hops >= 0) {
+		prefs.autoadd_max_hops = (max_hops > 64) ? 64 : (uint8_t)max_hops;
+	}
+	LOG_INF("SET_AUTOADD_CONFIG: autoadd_config=0x%02x max_hops=%u",
+		prefs.autoadd_config, prefs.autoadd_max_hops);
+	_store->savePrefs(prefs);
+}
+
 bool CompanionMesh::handleCmdSetAutoaddConfig(const uint8_t *data, size_t len)
 {
 	if (len >= 2) {
-		prefs.autoadd_config = data[1];
-		if (len >= 3) {
-			prefs.autoadd_max_hops = (data[2] > 64) ? 64 : data[2];
-		}
-		LOG_INF("SET_AUTOADD_CONFIG: autoadd_config=0x%02x max_hops=%u",
-			prefs.autoadd_config, prefs.autoadd_max_hops);
-		_store->savePrefs(prefs);
+		applyAutoaddConfig(data[1], len >= 3 ? data[2] : -1);
 	}
 	writeOKFrame();
 	return true;

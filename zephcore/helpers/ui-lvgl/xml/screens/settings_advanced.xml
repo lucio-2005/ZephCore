@@ -1,0 +1,19 @@
+<!-- Settings: Advanced. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="advanced"/>
+        <sub_header title="Advanced"></sub_header>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <setting_row label="Extra ACKs" hint="Send each ACK twice">
+                <mc_switch subject="set_multi_acks"/>
+            </setting_row>
+            <setting_row label="Path hash size" hint="Bytes per hop in flood paths">
+                <mc_dropdown subject="set_path_hash" options="1 byte&#10;2 bytes&#10;3 bytes"/>
+            </setting_row>
+            <value_row label="RX delay" value="set_rx_delay" key="rx_delay"/>
+            <value_row label="Airtime factor" value="set_airtime" key="airtime"/>
+        </lv_obj>
+    </view>
+</screen>

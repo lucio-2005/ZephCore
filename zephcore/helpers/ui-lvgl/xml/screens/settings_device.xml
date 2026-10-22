@@ -1,0 +1,36 @@
+<!-- Settings: Device. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="device"/>
+        <sub_header title="Device"/>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <setting_row name="row_buzzer" label="Buzzer" hint="Sound for new messages">
+                <mc_dropdown name="dev_buzzer" subject="set_buzzer" options="Off&#10;On&#10;Vibrate only&#10;Sound only"/>
+            </setting_row>
+            <setting_row label="LEDs" hint="Heartbeat and activity lights">
+                <mc_switch subject="set_leds"/>
+            </setting_row>
+            <section_label text="RESTART"/>
+            <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" style_pad_column="6">
+                <style name="style_plain"/>
+                <lv_button name="btn_reboot" flex_grow="1" height="content">
+                    <style name="style_btn"/>
+                    <style name="style_btn_pressed" selector="pressed"/>
+                    <event_cb trigger="clicked" callback="ui_on_reboot"/>
+                    <lv_label name="lbl_reboot" text="Reboot" align="center"/>
+                </lv_button>
+                <lv_button name="btn_reset" flex_grow="1" height="content">
+                    <style name="style_btn"/>
+                    <style name="style_alert_err"/>
+                    <event_cb trigger="clicked" callback="ui_on_factory_reset"/>
+                    <lv_label name="lbl_reset" text="Factory reset" align="center"/>
+                </lv_button>
+            </lv_obj>
+            <lv_label text="Factory reset erases contacts, channels, keys and settings." width="100%">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+    </view>
+</screen>

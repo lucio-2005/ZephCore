@@ -1,0 +1,54 @@
+<!-- Settings: Radio. Values are loaded when the screen opens (ui_on_settings_open). -->
+<screen>
+    <view flex_flow="column" scrollable="false">
+        <style name="style_screen"/>
+        <event_cb trigger="screen_load_start" callback="ui_on_settings_open" user_data="radio"/>
+        <sub_header title="Radio">
+            <lv_button width="content" height="content">
+                <style name="style_btn"/>
+                <style name="style_btn_accent"/>
+                <style name="style_btn_accent_pressed" selector="pressed"/>
+                <event_cb trigger="clicked" callback="ui_on_radio_save"/>
+                <lv_label text="Save" style_text_font="font_small"/>
+            </lv_button>
+        </sub_header>
+        <lv_obj width="100%" flex_grow="1" flex_flow="column" scrollbar_mode="auto">
+            <style name="style_page"/>
+            <setting_row label="Preset" hint="As in the app">
+                <mc_dropdown subject="set_preset" options="Custom&#10;EU/UK (Narrow)&#10;USA" name="radio_preset" width="170"/>
+            </setting_row>
+            <value_row label="Frequency" value="set_freq" key="freq"/>
+            <setting_row label="Bandwidth" hint="">
+                <mc_dropdown subject="set_bw" options="7.8 kHz&#10;10.4 kHz&#10;15.6 kHz&#10;20.8 kHz&#10;31.25 kHz&#10;41.7 kHz&#10;62.5 kHz&#10;125 kHz&#10;250 kHz&#10;500 kHz"/>
+            </setting_row>
+            <setting_row label="Spreading factor" hint="">
+                <mc_dropdown subject="set_sf" options="SF5&#10;SF6&#10;SF7&#10;SF8&#10;SF9&#10;SF10&#10;SF11&#10;SF12"/>
+            </setting_row>
+            <setting_row label="Coding rate" hint="">
+                <mc_dropdown subject="set_cr" options="4/5&#10;4/6&#10;4/7&#10;4/8"/>
+            </setting_row>
+            <lv_obj width="100%" height="content" flex_flow="column" scrollable="false">
+                <style name="style_card"/>
+                <lv_obj width="100%" height="content" flex_flow="row" scrollable="false" style_flex_cross_place="center">
+                    <style name="style_plain"/>
+                    <lv_label text="TX power" flex_grow="1"/>
+                    <lv_label bind_text="set_txp" bind_text-fmt="%d dBm">
+                        <style name="style_text_muted"/>
+                    </lv_label>
+                </lv_obj>
+                <lv_slider name="radio_txp" width="100%" height="6" min_value="-9" max_value="22" bind_value="set_txp"
+                           style_margin_ver="6">
+                    <style name="style_track"/>
+                    <style name="style_indicator" selector="indicator"/>
+                    <style name="style_knob" selector="knob"/>
+                </lv_slider>
+            </lv_obj>
+            <setting_row label="Off-grid repeat" hint="Relay for nearby nodes. Applies right away">
+                <mc_switch subject="set_offgrid"/>
+            </setting_row>
+            <lv_label text="Changes apply when you press Save." width="100%">
+                <style name="style_text_muted"/>
+            </lv_label>
+        </lv_obj>
+    </view>
+</screen>
